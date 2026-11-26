@@ -10,14 +10,15 @@ the analysis comes out. It is drawn as a small city, with the sites around a spo
 
 ![Sim Study: the pilot study in its fourth month, with study.builder's overview beside the city](docs/sim-study.jpg)
 
-Status: v0.1.0, a prototype. Every row is synthetic. Nothing here is qualified, and nothing here is a
+Status: v0.2.0, a prototype. Every row is synthetic. Nothing here is qualified, and nothing here is a
 submission.
 
 ## What it does
 
 - **A clock.** Play and pause; the speed button unfolds a day, a week or a month per second, and single days.
-- **Any study from study.builder's portfolio.** The Study button opens study.builder's own portfolio:
-  open a ready-made study, or describe and build one, then press Play this study.
+- **A list of studies to pick from.** The Study button lists study.builder's ready-made studies, a line
+  each, and the made-up trial. Pick one and it plays from day one. The list is study.builder's studies
+  feed, drawn by its picker; a study file is checked against the feed's checksum before it opens.
 - **A study overview.** study.builder's facts and counts for the study as the clock stands, and its full
   study view (every layer, table and participant) one press away.
 - **Daily raw data cuts.** The rows of each raw table that are dated today, and to date.
@@ -34,14 +35,15 @@ submission.
 
 | | A study.builder study | Made-up trial |
 |---|---|---|
-| What it is | Any study from study.builder's portfolio. The CDISC pilot protocol study opens first: 12 sites, three arms, seven monthly snapshots | A phase 3 trial invented in the page from a seed |
+| What it is | Any ready-made study in study.builder's studies feed. The CDISC pilot protocol study opens first: 12 sites, three arms, seven monthly snapshots | A phase 3 trial invented in the page from a seed |
 | Where the data comes from | The building blocks below. Sim Study invents nothing | `sim.js` |
 | Risk reviews | gsm's own scores and flags, at each snapshot the study kept | A simple weekly check against the study's own rate |
 | Charts | safety.viz and gsm.viz, on the study as it stood that month | The page's own small charts |
 | Can you change it? | No. It was simulated ahead of time | Yes. Three sites have a hidden problem; send a monitor to find and fix it |
 
-- The pilot study is copied into the page and needs no network. The rest of the portfolio is read from
-  study.builder's site, and building a new study there starts R in the browser (about 55 MB the first time).
+- The pilot study is copied into the page and needs no network. The other ready-made studies are fetched
+  from study.builder's site when picked. Nothing is built here: to make a study of your own, use
+  study.builder, and see the end of this page.
 - A study built with every monthly snapshot gets a risk review a month; one that kept only its last
   snapshot gets one, at the end.
 - Add `#study=made-up` to the address for the made-up trial, and `#seed=42` for a particular one.
@@ -54,7 +56,7 @@ Sim Study is a thin layer. The work is done by the projects below.
 
 | Block | What it does here | Whose |
 |---|---|---|
-| [study.builder](https://github.com/jwildfire/study.builder) 0.5.0-rc.2 | Builds the study in layers (raw, mapped, ADaM, analysis, reporting) with a snapshot for every month. Sim Study mounts its portfolio and study view, reads its overview, and asks a study for itself as it stood on any date | Jeremy Wildfire |
+| [study.builder](https://github.com/jwildfire/study.builder) 0.5.0 | Builds the study in layers (raw, mapped, ADaM, analysis, reporting) with a snapshot for every month. Sim Study reads its studies feed, mounts its picker and study view, reads its overview, and asks a study for itself as it stood on any date | Jeremy Wildfire |
 | [safety.viz](https://github.com/jwildfire/safety.viz) 1.12.0 | The safety charts: Adverse Event Explorer, Adverse Event Timelines, Hepatic Safety Explorer, Results Over Time, Safety Histogram | Jeremy Wildfire; an update of the [safetyGraphics](https://github.com/SafetyGraphics/safetyGraphics) renderers |
 | [gsm.datasim](https://github.com/Gilead-Public/gsm.datasim) 2.1.0 | Simulates every raw row, month by month | Gilead Sciences |
 | [gsm.mapping](https://github.com/Gilead-Public/gsm.mapping), [gsm.kri](https://github.com/Gilead-Public/gsm.kri), [gsm.reporting](https://github.com/Gilead-Public/gsm.reporting), [gsm.core](https://github.com/Gilead-Public/gsm.core) | Good Statistical Monitoring: map the raw data, score each site on eight metrics, and shape the results for charts | Gilead Sciences |
@@ -94,8 +96,10 @@ Sim Study is a thin layer. The work is done by the projects below.
 
 ## Run it yourself
 
-Download the files and open `index.html`. There is no build step, no server and no network
-call: the libraries and the study file are copied into the repository.
+Download the files and open `index.html`. There is no build step and no server: the libraries and
+the pilot study file are copied into the repository. The one network call is for the list of other
+ready-made studies, and for a study picked from it; without the network the pilot and the made-up
+trial still play.
 
 | File | What it is |
 |---|---|

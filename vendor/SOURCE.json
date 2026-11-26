@@ -3,12 +3,12 @@
  "files": [
   {
    "file": "vendor/study.builder/study.builder.js",
-   "from": "study.builder local branch \"sections\" at e067865, dist/study.builder.js (not published; to be replaced by the published candidate before this is released)",
+   "from": "https://jwildfire.github.io/study.builder/study.builder.js",
    "project": "jwildfire/study.builder",
-   "version": "0.5.0-rc.2 plus the unreleased studies feed and picker",
+   "version": "0.5.0 (tag v0.5.0, commit e99b45e0a2)",
    "licence": "Apache-2.0",
-   "bytes": 172036,
-   "sha256": "b1e6ab639a1fdcb96e1ee3ab286d78bd00d772b95dcbe0a613d26e6a98e56265"
+   "bytes": 172031,
+   "sha256": "350bb5efc2b12879c807010629fd1011ee5116669aa785e4f2d9f946eb0d606b"
   },
   {
    "file": "data/cdisc-pilot-protocol.study.json.gz",

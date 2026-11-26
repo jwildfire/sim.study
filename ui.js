@@ -1,6 +1,6 @@
 /* Sim Study: the clock, the city and the panels.
    Two engines give it a study: built.js plays one that study.builder built; sim.js makes one up.
-   No network calls and no storage. */
+   One network call, for study.builder's list of ready-made studies and a study picked from it; no storage. */
 (function () {
   "use strict";
   const $ = (id) => document.getElementById(id);
