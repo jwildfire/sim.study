@@ -8,8 +8,8 @@
   const still = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   const canBuild = !!(window.StudyBuilder && window.SIM_STUDY_FILE && window.DecompressionStream);
 
-  let S, mode = "arcade", opened = null, speed = 7, playing = false, acc = 0, sel = null, tab = "today", vans = [], lastT = 0, dirty = true, lastRender = 0, newsN = -1;
-  const TABS = [["today", "Daily cut"], ["week", "Weekly"], ["safety", "Safety"], ["sub", "Submission"], ["csr", "Report"]];
+  let S, mode = "arcade", opened = null, speed = 7, playing = false, acc = 0, sel = null, tab = "over", vans = [], widget = null, lastT = 0, dirty = true, lastRender = 0, newsN = -1;
+  const TABS = [["over", "Overview"], ["today", "Daily cut"], ["week", "Weekly"], ["safety", "Safety"], ["sub", "Submission"], ["csr", "Report"]];
   const FORMS = [["DM", "Demographics"], ["VS", "Vital signs"], ["LB", "Laboratory"], ["EX", "Dosing"], ["AE", "Adverse events"], ["DS", "Disposition"], ["DV", "Protocol deviations"]];
   const ARMC = ["#888888", "#d0661f", "#1f3a6e", "#4f9c94", "#8a6bb0"];
   const VIZ = [["aeExplorer", "ADAE", "Adverse Event Explorer"], ["aeTimelines", "ADAE", "Adverse Event Timelines"], ["hepExplorer", "ADLB", "Hepatic Safety Explorer"], ["resultsOverTime", "ADLB", "Results Over Time"], ["histogram", "ADLB", "Safety Histogram"]];
@@ -152,9 +152,32 @@
   const weekTicks = (maxDay) => { const out = [], step = maxDay > 200 ? 56 : maxDay > 90 ? 28 : 14; for (let d = 0; d <= maxDay; d += step) out.push([d, "wk " + d / 7]); return out; };
 
   // ---------- the other projects' charts, opened over the city ----------
+  const SB_BASE = "https://jwildfire.github.io/study.builder/";
+  function closeViz() { if (widget && widget.destroy) { try { widget.destroy(); } catch (e) { /* the widget is gone already */ } } widget = null; $("viz").hidden = true; $("vizBody").textContent = ""; }
+  function overlay(title, sub, cls) { closeViz(); playing = false; const body = $("vizBody"); body.className = cls || ""; $("viz").hidden = false; $("vizTitle").textContent = title; $("vizSub").textContent = sub; return body; }
+
+  // study.builder's own portfolio: open or build any study there, then play it here
+  async function openChooser() {
+    const body = overlay("Choose a study", "study.builder's portfolio · open a ready-made study or build your own, then press Play this study", "sb");
+    const row = document.createElement("div"); row.className = "chooser ss";
+    const b1 = document.createElement("button"); b1.textContent = "Pilot study (copied into this page)"; b1.onclick = () => start("built");
+    const b2 = document.createElement("button"); b2.textContent = "Made-up trial (you can send monitors)"; b2.onclick = () => start("arcade");
+    const note = document.createElement("span"); note.className = "soft"; note.textContent = "or pick from study.builder's portfolio below:";
+    row.appendChild(b1); row.appendChild(b2); row.appendChild(note); body.appendChild(row);
+    const host = document.createElement("div"); body.appendChild(host);
+    try {
+      const r = await fetch(SB_BASE + "presets/index.json"); if (!r.ok) throw new Error("no answer");
+      widget = window.StudyBuilder.mount(host, { base: SB_BASE, theme: "light", useLabel: "Play this study", onStudy: (study) => start("built", null, study) });
+    } catch (e) { note.textContent = ""; host.textContent = "study.builder's portfolio needs the network, and this page cannot reach it from here. The two studies above work without it. On jwildfire.github.io/sim.study the whole portfolio opens."; }
+  }
+  function openStudyView() {
+    const body = overlay(S.cfg.id + " · study view", "study.builder " + window.StudyBuilder.version + " · the whole study, every layer and every snapshot · not limited to the clock's date", "sb");
+    const host = document.createElement("div"); body.appendChild(host);
+    try { widget = window.StudyBuilder.mountStudy(host, { study: S.study, theme: "light" }); } catch (e) { host.textContent = "The study view could not be drawn here: " + e.message; }
+  }
+
   function openViz(kind, arg) {
-    playing = false;
-    const body = $("vizBody"); body.textContent = ""; $("viz").hidden = false;
+    const body = overlay("", "");
     const head = (t, s) => { $("vizTitle").textContent = t; $("vizSub").textContent = s; };
     try {
       if (kind === "kri") {
@@ -179,6 +202,29 @@
   const dayCharts = (withQ) => { const xm = Math.max(28, S.day);
     return (withQ ? cv("cq", (el) => chart(el, { xmax: xm, ymax: Math.max(10, ...S.cuts.map((x) => x.open)) * 1.1, xl: weekTicks(xm), series: [{ name: "open queries", color: "#b8865c", pts: S.cuts.map((x) => [x.day, x.open]) }] })) : "") +
       cv("cn", (el) => chart(el, { xmax: xm, ymax: Math.max(10, ...S.cuts.map((x) => x.n)) * 1.1, xl: weekTicks(xm), series: [{ name: "records per day", color: "#5c7fb8", bars: true, pts: S.cuts.map((x) => [x.day, x.n]) }] })); };
+
+  function pOver() {
+    if (!built()) {
+      const C = S.cfg;
+      return "<h2>" + esc(C.id) + " · made-up trial</h2><p>" + esc(C.title) + ".</p><div class='facts'><span>Phase 3</span><span>" + C.target + " patients</span><span>" + S.sites.length + " sites</span><span>2 arms</span><span>Seed " + S.seed + "</span></div>" +
+        "<p><b>Primary endpoint.</b> " + esc(C.primary) + ".</p><h3>Visits</h3><table>" + S.visits.map((v) => "<tr><td>" + v.n + "</td><td>day " + v.d + "</td></tr>").join("") + "</table>" +
+        "<div class='note'>Invented in this page. Three sites have a hidden problem: watch the Weekly tab, pick a site and send a monitor. Press <b>Study</b> to play a study from study.builder instead.</div>";
+    }
+    const snap = S.asOf(), O = window.StudyBuilder.overviewOf(snap || S.study), W = window.StudyBuilder.overviewOf(S.study);
+    let h = "<h2>" + esc(O.id) + (S.cfg.nick ? " · " + esc(S.cfg.nick) : "") + "</h2><p>" + esc(S.cfg.title) + "</p>";
+    h += "<div class='facts'>" + W.facts.filter((f) => !/^(Study|Snapshot|Status)$/.test(f.label)).map((f) => "<span>" + esc(f.label) + ": " + esc(f.value) + "</span>").join("") + "<span>" + S.cfg.target + " planned</span><span>" + S.arms.length + " arms</span></div>";
+    h += "<p><button data-view='study'>Open the full study view</button></p>";
+    if (snap) {
+      h += "<h3>As of " + esc(S.gsm.date) + " · snapshot " + S.gsm.number + "</h3><div class='stats'>" + O.counts.slice(0, 8).map((c) => stat(esc(c.value), esc(c.label) + (c.note ? " · " + esc(c.note) : ""))).join("") + "</div>";
+      h += "<h3>By country</h3><table><tr><th>Country</th><th>Sites</th><th>Participants</th></tr>" + O.countries.map((c) => "<tr><td>" + esc(c.country) + "</td><td>" + c.sites + "</td><td>" + c.participants + "</td></tr>").join("") + "</table>";
+    } else h += "<h3>As the clock stands</h3><p class='soft'>Press Play. study.builder's counts appear at the first month's snapshot.</p>";
+    if (S.arms.length) h += "<h3>Arms</h3><p>" + S.arms.map(esc).join(" · ") + (S.unblinded ? "" : " <span class='soft'>(blinded in the safety review until lock)</span>") + "</p>";
+    h += "<h3>What the study holds, in all</h3><table><tr><th>Layer</th><th>Tables</th><th>Rows</th></tr>" + W.layers.map((l) => "<tr><td>" + esc(l.label) + "</td><td>" + l.tables + "</td><td>" + Number(l.rows).toLocaleString("en-GB") + "</td></tr>").join("") + "</table>";
+    if (W.growth && W.growth.length > 1) h += "<h3>How it grows, snapshot by snapshot</h3><table><tr><th>Date</th><th>Participants</th><th>Sites</th><th>Visits</th><th>Events</th></tr>" + W.growth.map((g) => "<tr" + (S.gsm && g.number === S.gsm.number ? " class='sel'" : "") + "><td>" + esc(g.date) + "</td><td>" + g.participants + "</td><td>" + g.sites + "</td><td>" + g.visits + "</td><td>" + g.events + "</td></tr>").join("") + "</table>";
+    else h += "<div class='note'>This study file keeps only its last snapshot, so there is one risk review, at the end. Studies built with every snapshot have one a month.</div>";
+    h += "<p class='soft'>Facts and counts are study.builder's own overview of the study.</p>";
+    return h;
+  }
 
   function pToday() {
     const cut = S.cuts[S.cuts.length - 1];
@@ -293,7 +339,7 @@
     return h;
   }
 
-  const PANELS = { today: pToday, week: pWeek, safety: pSafety, sub: pSub, csr: pCsr };
+  const PANELS = { over: pOver, today: pToday, week: pWeek, safety: pSafety, sub: pSub, csr: pCsr };
   function render() {
     dirty = false; if (!S) return;
     const d = Math.max(0, S.day);
@@ -302,7 +348,9 @@
     $("phase").textContent = cap(S.phase);
     $("play").textContent = S.done ? "■ Finished" : playing ? "❚❚ Pause" : "▶ Play"; $("play").disabled = S.done; $("stepBtn").disabled = S.done;
     document.querySelectorAll("[data-speed]").forEach((b) => b.classList.toggle("on", +b.dataset.speed === speed));
-    document.querySelectorAll("[data-mode]").forEach((b) => { b.classList.toggle("on", b.dataset.mode === mode); b.disabled = b.dataset.mode === "built" && !canBuild; });
+    $("play").classList.toggle("on", playing && !S.done);
+    $("speedBtn").textContent = ({ 1: "1 day/s", 7: "1 wk/s", 30: "1 mo/s" })[speed] + ($("timeMore").hidden ? " ▸" : " ◂");
+    $("pick").textContent = "Study: " + (built() ? S.cfg.id : "made-up trial") + " ▾";
     document.querySelectorAll(".arcade").forEach((el) => { el.hidden = built(); });
     $("tab-csr").textContent = built() ? "Results" : "Report";
     document.querySelectorAll("[data-tab]").forEach((b) => { b.classList.toggle("on", b.dataset.tab === tab); b.setAttribute("aria-selected", b.dataset.tab === tab); });
@@ -331,9 +379,11 @@
     if (dirty && t - lastRender > 220) { lastRender = t; render(); }
     requestAnimationFrame(frame);
   }
-  async function start(m, seed) {
-    playing = false; $("viz").hidden = true; let made = null, problem = null;
-    if (m === "built" && canBuild) {
+  async function start(m, seed, picked) {
+    playing = false; closeViz(); let made = null, problem = null;
+    if (m === "built" && picked) {
+      try { made = window.SimStudy.fromBuilt(picked, {}); if (!made.sites.length) throw new Error("the study has no sites"); made.news.push({ day: 0, kind: "info", text: "Opened " + made.cfg.id + " from study.builder's portfolio. Every row is synthetic." }); } catch (e) { problem = String(e); made = null; }
+    } else if (m === "built" && canBuild) {
       try {
         if (!opened) { $("phase").textContent = "Opening the study…"; opened = await window.SimStudy.openFile(window.SIM_STUDY_FILE); }
         made = window.SimStudy.fromBuilt(opened, window.SIM_STUDY_FILE);
@@ -347,21 +397,22 @@
       made.news.push({ day: 0, kind: "info", text: "Protocol " + made.cfg.id + " approved. Twelve sites are being set up. Seed " + seed + "." });
       if (problem) made.news.push({ day: 0, kind: "safety", text: "The study.builder study could not be opened here, so this is the made-up trial. " + problem });
     }
-    S = made; layout(S.sites.length); sel = null; vans = []; acc = 0; newsN = -1; tab = "today"; dirty = true; render();
+    S = made; layout(S.sites.length); sel = null; vans = []; acc = 0; newsN = -1; tab = "over"; dirty = true; render();
   }
 
   $("tabs").innerHTML = TABS.map(([k, n]) => "<button role='tab' id='tab-" + k + "' data-tab='" + k + "'>" + n + "</button>").join("");
   $("tabs").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; $("panel").scrollTop = 0; render(); } });
-  $("play").addEventListener("click", () => { playing = !playing; if (playing) $("viz").hidden = true; render(); });
+  $("play").addEventListener("click", () => { playing = !playing; if (playing) closeViz(); render(); });
+  $("speedBtn").addEventListener("click", () => { const m = $("timeMore"); m.hidden = !m.hidden; $("speedBtn").setAttribute("aria-expanded", String(!m.hidden)); render(); });
+  $("pick").addEventListener("click", openChooser);
   $("stepBtn").addEventListener("click", () => { playing = false; tick(); render(); });
   $("auto").addEventListener("change", (e) => { S.auto = e.target.checked; });
   $("fresh").addEventListener("click", () => start("arcade", 1 + Math.floor(Math.random() * 99999)));
-  $("vizClose").addEventListener("click", () => { $("viz").hidden = true; $("vizBody").textContent = ""; });
-  document.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => { if (b.dataset.mode !== mode) start(b.dataset.mode); }));
-  document.querySelectorAll("[data-speed]").forEach((b) => b.addEventListener("click", () => { speed = +b.dataset.speed; playing = true; $("viz").hidden = true; render(); }));
+  $("vizClose").addEventListener("click", closeViz);
+  document.querySelectorAll("[data-speed]").forEach((b) => b.addEventListener("click", () => { speed = +b.dataset.speed; playing = true; closeViz(); render(); }));
   $("panel").addEventListener("click", (e) => {
     const m = e.target.closest("[data-monitor]"), k = e.target.closest("[data-kri]"), v = e.target.closest("[data-viz]"), r = e.target.closest("[data-site]");
-    if (m) { S.dispatch(+m.dataset.monitor, "You"); render(); } else if (k) openViz("kri", k.dataset.kri); else if (v) openViz(v.dataset.viz); else if (r) { sel = +r.dataset.site; render(); }
+    if (e.target.closest("[data-view]")) openStudyView(); else if (m) { S.dispatch(+m.dataset.monitor, "You"); render(); } else if (k) openViz("kri", k.dataset.kri); else if (v) openViz(v.dataset.viz); else if (r) { sel = +r.dataset.site; render(); }
   });
   $("city").addEventListener("click", (e) => {
     if (!S) return;
@@ -373,5 +424,5 @@
   window.addEventListener("resize", () => { dirty = true; });
 
   start(hash("study", "pilot") === "made-up" ? "arcade" : "built").then(() => requestAnimationFrame(frame));
-  window.__sim = { get S() { return S; }, tick, render, openViz, start, set tab(v) { tab = v; }, set sel(v) { sel = v; } };
+  window.__sim = { get S() { return S; }, tick, render, openViz, openChooser, openStudyView, start, set tab(v) { tab = v; }, set sel(v) { sel = v; } };
 })();

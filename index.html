@@ -16,12 +16,12 @@
   #bar h1 { font:700 15px/1 var(--mono); margin:0 6px 0 0; letter-spacing:.04em; color:var(--navy); }
   #bar .lcd { background:#10210f; color:#8dff7a; padding:4px 9px; border:2px solid; border-color:var(--lo) var(--hi) var(--hi) var(--lo); white-space:nowrap; }
   #bar .grow { flex:1; }
-  button { font:600 12px/1 var(--mono); color:var(--ink); background:var(--face); padding:6px 9px; cursor:pointer;
+  .ss button { font:600 12px/1 var(--mono); color:var(--ink); background:var(--face); padding:6px 9px; cursor:pointer;
            border:2px solid; border-color:var(--hi) var(--dk) var(--dk) var(--hi); }
-  button:active, button.on { border-color:var(--dk) var(--hi) var(--hi) var(--dk); background:#aeb3b8; }
-  button.on { box-shadow:inset 0 0 0 1px var(--navy); color:var(--navy); }
-  button:focus-visible { outline:2px solid var(--navy); outline-offset:1px; }
-  button:disabled { color:var(--lo); cursor:default; }
+  .ss button:active, .ss button.on { border-color:var(--dk) var(--hi) var(--hi) var(--dk); background:#aeb3b8; }
+  .ss button.on { box-shadow:inset 0 0 0 1px var(--navy); color:var(--navy); }
+  .ss button:focus-visible { outline:2px solid var(--navy); outline-offset:1px; }
+  .ss button:disabled { color:var(--lo); cursor:default; }
   label.chk { display:inline-flex; gap:5px; align-items:center; cursor:pointer; }
   #main { flex:1; display:flex; min-height:0; }
   #cityWrap { flex:1; position:relative; min-width:0; }
@@ -36,10 +36,10 @@
   #panel h3 { font:700 12px/1.3 var(--mono); margin:14px 0 4px; text-transform:uppercase; letter-spacing:.06em; color:#444; }
   #panel p { margin:4px 0; }
   .soft { color:#555; }
-  table { border-collapse:collapse; width:100%; font-size:12px; }
-  th, td { text-align:right; padding:3px 5px; border-bottom:1px solid #d9d4c5; white-space:nowrap; }
-  th:first-child, td:first-child { text-align:left; }
-  th { font-weight:700; color:#444; }
+  #panel table { border-collapse:collapse; width:100%; font-size:12px; }
+  #panel th, #panel td { text-align:right; padding:3px 5px; border-bottom:1px solid #d9d4c5; white-space:nowrap; }
+  #panel th:first-child, #panel td:first-child { text-align:left; }
+  #panel th { font-weight:700; color:#444; }
   tr.sel td { background:#e3ecfb; }
   tr.pick { cursor:pointer; }
   .dot { display:inline-block; width:10px; height:10px; border:1px solid var(--dk); vertical-align:-1px; }
@@ -58,7 +58,14 @@
   #vizHead { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; padding:8px 10px; background:var(--face); border-bottom:2px solid var(--lo); }
   #vizBody { flex:1; overflow:auto; padding:10px; background:#fff; font-family:system-ui,-apple-system,"Segoe UI",sans-serif; }
   table.kri th, table.kri td { padding:3px 3px; font-size:11.5px; }
-  button.lnk { padding:2px 3px; font-size:11px; }
+  .ss button.lnk { padding:2px 3px; font-size:11px; }
+  .ss button.primary { font-size:14px; padding:9px 18px; background:#2f8f3a; color:#fff; border-color:#8fe39a #14501b #14501b #8fe39a; min-width:104px; letter-spacing:.03em; }
+  .ss button.primary.on, .ss button.primary:active { background:#c98a12; border-color:#7a5200 #ffd98a #ffd98a #7a5200; color:#fff; box-shadow:none; }
+  .ss button.primary:disabled { background:#8f949a; color:#e6e6e6; border-color:var(--hi) var(--dk) var(--dk) var(--hi); }
+  #pick { max-width:42vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  #vizBody.sb { font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; color:#15171a; }
+  .chooser { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 12px; padding:0 0 12px; border-bottom:1px solid #ddd; font:13px/1.4 var(--mono); }
+  .facts { display:flex; flex-wrap:wrap; gap:5px; margin:6px 0; } .facts span { background:#ece8db; border:1px solid #d0cab8; padding:2px 7px; font-size:11.5px; }
   .ck.done i { color:var(--good); } .ck.running i { color:var(--warn); } .ck.pending { color:#888; }
   .ck em { margin-left:auto; font-style:normal; color:#555; white-space:nowrap; }
   .note { background:#fff7d6; border:1px solid #e2cf86; padding:6px 8px; margin:8px 0; font-size:12px; }
@@ -76,18 +83,19 @@
 </style>
 </head>
 <body>
-<header id="bar" class="bevel">
-  <h1>SIM STUDY</h1>
+<header id="bar" class="bevel ss">
+  <h1 title="Sim Study v0.1.0">SIM STUDY</h1>
   <span class="lcd" id="date">Day 0</span>
-  <button id="play" aria-label="Play or pause">▶ Play</button>
-  <span role="group" aria-label="Speed">
-    <button data-speed="1" title="One study day a second">1 day/s</button><button data-speed="7" title="One week a second">1 wk/s</button><button data-speed="30" title="One month a second">1 mo/s</button>
+  <button id="play" class="primary" aria-label="Play or pause">▶ Play</button>
+  <button id="speedBtn" aria-expanded="false" aria-controls="timeMore" title="Speed and single steps">1 wk/s ▾</button>
+  <span id="timeMore" hidden>
+    <span role="group" aria-label="Speed">
+      <button data-speed="1" title="One study day a second">1 day/s</button><button data-speed="7" title="One week a second">1 wk/s</button><button data-speed="30" title="One month a second">1 mo/s</button>
+    </span>
+    <button id="stepBtn" title="Advance one day">+1 day</button>
   </span>
-  <button id="stepBtn" title="Advance one day">+1 day</button>
   <label class="chk arcade" title="Send a monitor by itself when a site stays red for two weeks"><input type="checkbox" id="auto" checked> Autopilot</label>
-  <span role="group" aria-label="Which study">
-    <button data-mode="built" title="The CDISC pilot protocol study, built by study.builder with gsm.datasim">Pilot study</button><button data-mode="arcade" title="A trial invented in this page, where you can send monitors">Made-up trial</button>
-  </span>
+  <button id="pick" title="Choose a study from study.builder's portfolio, or the made-up trial">Study ▾</button>
   <span class="grow"></span>
   <span class="lcd" id="money">$0.0M</span>
   <button id="fresh" class="arcade" title="Start again with a different made-up trial">New trial</button>
@@ -97,12 +105,12 @@
     <canvas id="city" aria-label="Map of the study: twelve sites around the sponsor's campus"></canvas>
     <div id="phase" class="bevel">Start-up</div>
     <div id="viz" class="bevel" hidden>
-      <div id="vizHead"><div><b id="vizTitle"></b><br><span id="vizSub" class="soft"></span></div><button id="vizClose">Close ✕</button></div>
+      <div id="vizHead" class="ss"><div><b id="vizTitle"></b><br><span id="vizSub" class="soft"></span></div><button id="vizClose">Close ✕</button></div>
       <div id="vizBody"></div>
     </div>
-    <div id="hint" class="bevel">Click a site to pick it. A site's roof is its risk colour. Vans carry the day's data to the hub.</div>
+    <div id="hint" class="bevel ss">Click a site to pick it. A site's roof is its risk colour. Vans carry the day's data to the hub.</div>
   </div>
-  <aside id="side" class="bevel">
+  <aside id="side" class="bevel ss">
     <div id="tabs" role="tablist"></div>
     <div id="panel" class="sunk" role="tabpanel"></div>
   </aside>
