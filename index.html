@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sim Study</title>
+<style>
+  :root { --face:#c3c7cb; --hi:#fff; --lo:#7b7f86; --dk:#2a2d33; --ink:#15171a; --navy:#1f3a6e; --paper:#f6f3ea;
+          --good:#3f8f3a; --warn:#d69a1c; --bad:#c23b32; --mono:ui-monospace,"IBM Plex Mono",Menlo,Consolas,monospace; }
+  * { box-sizing:border-box; }
+  html, body { height:100%; margin:0; }
+  body { background:#3b5a3a; color:var(--ink); font:13px/1.45 var(--mono); display:flex; flex-direction:column; overflow:hidden; }
+  .bevel { background:var(--face); border:2px solid; border-color:var(--hi) var(--lo) var(--lo) var(--hi); }
+  .sunk { border:2px solid; border-color:var(--lo) var(--hi) var(--hi) var(--lo); background:var(--paper); }
+  #bar { display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; padding:5px 8px; }
+  #bar h1 { font:700 15px/1 var(--mono); margin:0 6px 0 0; letter-spacing:.04em; color:var(--navy); }
+  #bar .lcd { background:#10210f; color:#8dff7a; padding:4px 9px; border:2px solid; border-color:var(--lo) var(--hi) var(--hi) var(--lo); white-space:nowrap; }
+  #bar .grow { flex:1; }
+  button { font:600 12px/1 var(--mono); color:var(--ink); background:var(--face); padding:6px 9px; cursor:pointer;
+           border:2px solid; border-color:var(--hi) var(--dk) var(--dk) var(--hi); }
+  button:active, button.on { border-color:var(--dk) var(--hi) var(--hi) var(--dk); background:#aeb3b8; }
+  button.on { box-shadow:inset 0 0 0 1px var(--navy); color:var(--navy); }
+  button:focus-visible { outline:2px solid var(--navy); outline-offset:1px; }
+  button:disabled { color:var(--lo); cursor:default; }
+  label.chk { display:inline-flex; gap:5px; align-items:center; cursor:pointer; }
+  #main { flex:1; display:flex; min-height:0; }
+  #cityWrap { flex:1; position:relative; min-width:0; }
+  #city { display:block; width:100%; height:100%; cursor:pointer; }
+  #phase { position:absolute; left:10px; top:10px; padding:5px 9px; font-weight:700; }
+  #hint { position:absolute; left:10px; bottom:10px; padding:4px 8px; font-size:11.5px; max-width:60%; }
+  #side { width:min(500px, 48vw); display:flex; flex-direction:column; min-height:0; }
+  #tabs { display:flex; flex-wrap:wrap; gap:2px; padding:4px 4px 0; }
+  #tabs button { flex:1; padding:6px 4px; }
+  #panel { flex:1; overflow:auto; margin:4px; padding:10px 12px; }
+  #panel h2 { font:700 14px/1.3 var(--mono); margin:0 0 2px; color:var(--navy); }
+  #panel h3 { font:700 12px/1.3 var(--mono); margin:14px 0 4px; text-transform:uppercase; letter-spacing:.06em; color:#444; }
+  #panel p { margin:4px 0; }
+  .soft { color:#555; }
+  table { border-collapse:collapse; width:100%; font-size:12px; }
+  th, td { text-align:right; padding:3px 5px; border-bottom:1px solid #d9d4c5; white-space:nowrap; }
+  th:first-child, td:first-child { text-align:left; }
+  th { font-weight:700; color:#444; }
+  tr.sel td { background:#e3ecfb; }
+  tr.pick { cursor:pointer; }
+  .dot { display:inline-block; width:10px; height:10px; border:1px solid var(--dk); vertical-align:-1px; }
+  .f0 { background:var(--good); } .f1 { background:var(--warn); } .f2 { background:var(--bad); } .fx { background:#bbb; }
+  td.c1 { background:#f5e1ae; } td.c2 { background:#f0b6b0; font-weight:700; }
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:8px 0; }
+  .stat { padding:5px 6px; background:#ece8db; border:1px solid #d0cab8; }
+  .stat b { display:block; font-size:17px; line-height:1.2; }
+  .stat span { font-size:10.5px; color:#555; text-transform:uppercase; letter-spacing:.05em; }
+  canvas.chart { width:100%; height:150px; display:block; background:#fff; border:1px solid #d0cab8; margin:4px 0; }
+  .ck { display:flex; gap:8px; padding:4px 0; border-bottom:1px solid #d9d4c5; }
+  .ck i { font-style:normal; width:18px; text-align:center; font-weight:700; }
+  .ck.missing i { color:var(--bad); } .ck small { color:#7a2d27; }
+  [hidden] { display:none !important; }
+  #viz { position:absolute; inset:6px; z-index:5; display:flex; flex-direction:column; background:#fff; }
+  #vizHead { display:flex; justify-content:space-between; gap:10px; align-items:flex-start; padding:8px 10px; background:var(--face); border-bottom:2px solid var(--lo); }
+  #vizBody { flex:1; overflow:auto; padding:10px; background:#fff; font-family:system-ui,-apple-system,"Segoe UI",sans-serif; }
+  table.kri th, table.kri td { padding:3px 3px; font-size:11.5px; }
+  button.lnk { padding:2px 3px; font-size:11px; }
+  .ck.done i { color:var(--good); } .ck.running i { color:var(--warn); } .ck.pending { color:#888; }
+  .ck em { margin-left:auto; font-style:normal; color:#555; white-space:nowrap; }
+  .note { background:#fff7d6; border:1px solid #e2cf86; padding:6px 8px; margin:8px 0; font-size:12px; }
+  .blind { background:#e6e6e6; border:1px dashed #888; padding:6px 8px; margin:8px 0; }
+  #ticker { display:flex; gap:8px; align-items:stretch; margin:0 4px 4px; padding:4px 8px; height:92px; }
+  #ticker b { color:var(--navy); writing-mode:vertical-rl; transform:rotate(180deg); text-align:center; font-size:11px; letter-spacing:.1em; }
+  #news { flex:1; overflow:auto; margin:0; padding:0; list-style:none; font-size:12px; }
+  #news li { padding:1px 0; }
+  #news time { color:#666; margin-right:8px; }
+  #news .mile { font-weight:700; color:var(--navy); } #news .rbqm { color:#8a4b00; } #news .safety { color:#9b1f17; }
+  .csr { font:13.5px/1.5 Georgia, "Times New Roman", serif; }
+  .csr h2 { font:700 16px/1.3 Georgia, serif; color:#000; }
+  .csr table { font:12px/1.4 var(--mono); margin:6px 0 12px; }
+  @media (max-width:820px) { #main { flex-direction:column; } #side { width:auto; height:52%; } #cityWrap { height:48%; flex:none; } #hint { display:none; } }
+</style>
+</head>
+<body>
+<header id="bar" class="bevel">
+  <h1>SIM STUDY</h1>
+  <span class="lcd" id="date">Day 0</span>
+  <button id="play" aria-label="Play or pause">▶ Play</button>
+  <span role="group" aria-label="Speed">
+    <button data-speed="1" title="One study day a second">1 day/s</button><button data-speed="7" title="One week a second">1 wk/s</button><button data-speed="30" title="One month a second">1 mo/s</button>
+  </span>
+  <button id="stepBtn" title="Advance one day">+1 day</button>
+  <label class="chk arcade" title="Send a monitor by itself when a site stays red for two weeks"><input type="checkbox" id="auto" checked> Autopilot</label>
+  <span role="group" aria-label="Which study">
+    <button data-mode="built" title="The CDISC pilot protocol study, built by study.builder with gsm.datasim">Pilot study</button><button data-mode="arcade" title="A trial invented in this page, where you can send monitors">Made-up trial</button>
+  </span>
+  <span class="grow"></span>
+  <span class="lcd" id="money">$0.0M</span>
+  <button id="fresh" class="arcade" title="Start again with a different made-up trial">New trial</button>
+</header>
+<div id="main">
+  <div id="cityWrap">
+    <canvas id="city" aria-label="Map of the study: twelve sites around the sponsor's campus"></canvas>
+    <div id="phase" class="bevel">Start-up</div>
+    <div id="viz" class="bevel" hidden>
+      <div id="vizHead"><div><b id="vizTitle"></b><br><span id="vizSub" class="soft"></span></div><button id="vizClose">Close ✕</button></div>
+      <div id="vizBody"></div>
+    </div>
+    <div id="hint" class="bevel">Click a site to pick it. A site's roof is its risk colour. Vans carry the day's data to the hub.</div>
+  </div>
+  <aside id="side" class="bevel">
+    <div id="tabs" role="tablist"></div>
+    <div id="panel" class="sunk" role="tabpanel"></div>
+  </aside>
+</div>
+<footer id="ticker" class="bevel"><b>NEWS</b><ul id="news" class="sunk" style="padding:3px 8px"></ul></footer>
+<script src="vendor/study.builder/study.builder.js"></script>
+<script src="vendor/safety.viz/safety.viz.js"></script>
+<script src="vendor/gsm.viz/index.js"></script>
+<script src="data/cdisc-pilot-protocol.study.js"></script>
+<script src="sim.js"></script>
+<script src="built.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>
