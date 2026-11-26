@@ -159,14 +159,14 @@
   // The studies to play, a line each: study.builder's picker over its studies feed.
   // Only a study with its data ready can be played, so settings and protocols are left out.
   const PILOT = "preset:cdisc-pilot-protocol";
-  const COPIED = { id: PILOT, kind: "study", name: "CDISC pilot protocol study", line: "Phase 2 · 120 participants · 12 sites · 7 months", mark: "Copied here" };
+  const COPIED = { id: PILOT, kind: "settings", build: {}, name: "CDISC pilot protocol study", line: "Phase 2 · 120 participants · 12 sites · 7 months", mark: "Copied here" };
   const MADE_UP = { id: "sim:made-up", kind: "game", name: "Made-up trial", line: "Phase 3 · invented in this page · you can send monitors", mark: "Game" };
   async function openChooser() {
     const body = overlay("Choose a study", "Pick one to play it from day one", "sb");
     const host = document.createElement("div"); host.className = "pick-host"; body.appendChild(host);
     const note = document.createElement("p"); note.className = "soft ss"; body.appendChild(note);
     let listed = [];
-    try { listed = await window.StudyBuilder.listStudies(SB_BASE + "studies/index.json", { kinds: ["study"] }); }
+    try { listed = await window.StudyBuilder.listStudies(SB_BASE + "studies/index.json", { built: true }); }
     catch (e) { note.textContent = "The rest of study.builder's studies need the network, and this page cannot reach it from here. These two work without it."; }
     if (!listed.some((one) => one.id === PILOT)) listed = [COPIED].concat(listed);
     const now = mode === "arcade" ? MADE_UP.id : (S && S.cfg && S.cfg.listed) || PILOT;
