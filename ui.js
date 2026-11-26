@@ -156,19 +156,31 @@
   function closeViz() { if (widget && widget.destroy) { try { widget.destroy(); } catch (e) { /* the widget is gone already */ } } widget = null; $("viz").hidden = true; $("vizBody").textContent = ""; }
   function overlay(title, sub, cls) { closeViz(); playing = false; const body = $("vizBody"); body.className = cls || ""; $("viz").hidden = false; $("vizTitle").textContent = title; $("vizSub").textContent = sub; return body; }
 
-  // study.builder's own portfolio: open or build any study there, then play it here
+  // The studies to play, a line each: study.builder's picker over its studies feed.
+  // Only a study with its data ready can be played, so settings and protocols are left out.
+  const PILOT = "preset:cdisc-pilot-protocol";
+  const COPIED = { id: PILOT, kind: "study", name: "CDISC pilot protocol study", line: "Phase 2 · 120 participants · 12 sites · 7 months", mark: "Copied here" };
+  const MADE_UP = { id: "sim:made-up", kind: "game", name: "Made-up trial", line: "Phase 3 · invented in this page · you can send monitors", mark: "Game" };
   async function openChooser() {
-    const body = overlay("Choose a study", "study.builder's portfolio · open a ready-made study or build your own, then press Play this study", "sb");
-    const row = document.createElement("div"); row.className = "chooser ss";
-    const b1 = document.createElement("button"); b1.textContent = "Pilot study (copied into this page)"; b1.onclick = () => start("built");
-    const b2 = document.createElement("button"); b2.textContent = "Made-up trial (you can send monitors)"; b2.onclick = () => start("arcade");
-    const note = document.createElement("span"); note.className = "soft"; note.textContent = "or pick from study.builder's portfolio below:";
-    row.appendChild(b1); row.appendChild(b2); row.appendChild(note); body.appendChild(row);
-    const host = document.createElement("div"); body.appendChild(host);
-    try {
-      const r = await fetch(SB_BASE + "presets/index.json"); if (!r.ok) throw new Error("no answer");
-      widget = window.StudyBuilder.mount(host, { base: SB_BASE, theme: "light", useLabel: "Play this study", onStudy: (study) => start("built", null, study) });
-    } catch (e) { note.textContent = ""; host.textContent = "study.builder's portfolio needs the network, and this page cannot reach it from here. The two studies above work without it. On jwildfire.github.io/sim.study the whole portfolio opens."; }
+    const body = overlay("Choose a study", "Pick one to play it from day one", "sb");
+    const host = document.createElement("div"); host.className = "pick-host"; body.appendChild(host);
+    const note = document.createElement("p"); note.className = "soft ss"; body.appendChild(note);
+    let listed = [];
+    try { listed = await window.StudyBuilder.listStudies(SB_BASE + "studies/index.json", { kinds: ["study"] }); }
+    catch (e) { note.textContent = "The rest of study.builder's studies need the network, and this page cannot reach it from here. These two work without it."; }
+    if (!listed.some((one) => one.id === PILOT)) listed = [COPIED].concat(listed);
+    const now = mode === "arcade" ? MADE_UP.id : (S && S.cfg && S.cfg.listed) || PILOT;
+    widget = window.StudyBuilder.mountPicker(host, {
+      studies: listed.concat([MADE_UP]), picked: now, theme: "light", label: "Studies to play",
+      onPick: async (entry) => {
+        if (entry.id === MADE_UP.id) return start("arcade");
+        // The pilot is copied into this page: it opens with no fetch.
+        if (entry.id === PILOT && canBuild) return start("built");
+        note.textContent = "Fetching " + entry.name + "…";
+        try { const got = await window.StudyBuilder.openListed(entry); start("built", null, got.study, entry.id); }
+        catch (e) { note.textContent = String(e && e.message ? e.message : e); }
+      }
+    });
   }
   function openStudyView() {
     const body = overlay(S.cfg.id + " · study view", "study.builder " + window.StudyBuilder.version + " · the whole study, every layer and every snapshot · not limited to the clock's date", "sb");
@@ -379,10 +391,10 @@
     if (dirty && t - lastRender > 220) { lastRender = t; render(); }
     requestAnimationFrame(frame);
   }
-  async function start(m, seed, picked) {
+  async function start(m, seed, picked, listedId) {
     playing = false; closeViz(); let made = null, problem = null;
     if (m === "built" && picked) {
-      try { made = window.SimStudy.fromBuilt(picked, {}); if (!made.sites.length) throw new Error("the study has no sites"); made.news.push({ day: 0, kind: "info", text: "Opened " + made.cfg.id + " from study.builder's portfolio. Every row is synthetic." }); } catch (e) { problem = String(e); made = null; }
+      try { made = window.SimStudy.fromBuilt(picked, {}); if (!made.sites.length) throw new Error("the study has no sites"); made.cfg.listed = listedId || null; made.news.push({ day: 0, kind: "info", text: "Opened " + made.cfg.id + " from study.builder's portfolio. Every row is synthetic." }); } catch (e) { problem = String(e); made = null; }
     } else if (m === "built" && canBuild) {
       try {
         if (!opened) { $("phase").textContent = "Opening the study…"; opened = await window.SimStudy.openFile(window.SIM_STUDY_FILE); }
