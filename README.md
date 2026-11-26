@@ -77,6 +77,8 @@ Sim Study is a thin layer. The work is done by the projects below.
 - gsm.datasim builds a study a month at a time, so enrolment arrives in monthly steps and the
   risk reviews and charts are monthly. Weekly snapshots count what has arrived; they do not
   re-run gsm.
+- A row dated after the study file's last snapshot is counted on the last day, so the last day's cut is
+  larger than it should be.
 - The study file holds seven months of a longer study. The analysis is of what was there at
   the last snapshot, so late visits have few participants.
 - The rows marked ✗ on the Submission tab are real gaps. There is no SDTM, no tables package
