@@ -19,7 +19,7 @@ submission.
 - **A "What is simstudy?" panel.** The ⓘ button says what the project is and what it can and cannot do yet. It opens by itself on a first visit; the
   browser remembers that it has been seen, and nothing else is stored.
 - **A list of studies to pick from.** The Study button lists every study in study.builder's feed, a line
-  each, and the made-up trial. Pick one marked Data ready and it plays from day one; the others are
+  each, and the made-up trial. The list drops down from the bar. Pick one marked Data ready and it plays from day one; the others are
   listed with their plan and play once study.builder has built them. The list is study.builder's studies
   feed, drawn by its picker; a study file is checked against the feed's checksum before it opens.
 - **A study overview.** study.builder's facts and counts for the study as the clock stands, and its full
