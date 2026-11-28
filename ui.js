@@ -161,30 +161,42 @@
   const PILOT = "preset:cdisc-pilot-protocol";
   const COPIED = { id: PILOT, kind: "settings", build: {}, name: "CDISC pilot protocol study", line: "Phase 2 · 120 participants · 12 sites · 7 months", mark: "Copied here" };
   const MADE_UP = { id: "sim:made-up", kind: "game", name: "Made-up trial", line: "Phase 3 · invented in this page · you can send monitors", mark: "Game" };
+  // The list drops down from the Study button in the bar. The clock keeps its state while it is open.
+  let pickWidget = null;
+  function closeChooser() { const m = $("pickMenu"); if (pickWidget && pickWidget.destroy) { try { pickWidget.destroy(); } catch (e) { /* gone already */ } } pickWidget = null; m.hidden = true; m.textContent = ""; $("pick").setAttribute("aria-expanded", "false"); }
   async function openChooser() {
-    const body = overlay("Choose a study", "Pick one to play it from day one", "sb");
-    const note = document.createElement("p"); note.className = "soft ss"; body.appendChild(note);
-    const host = document.createElement("div"); host.className = "pick-host"; body.appendChild(host);
+    const menu = $("pickMenu"), btn = $("pick");
+    if (!menu.hidden) return closeChooser();
+    const at = btn.getBoundingClientRect(), wide = Math.min(460, window.innerWidth - 16);
+    menu.style.width = wide + "px"; menu.style.top = Math.round(at.bottom + 2) + "px"; menu.style.left = Math.max(8, Math.min(at.left, window.innerWidth - wide - 8)) + "px";
+    menu.style.maxHeight = Math.max(160, window.innerHeight - at.bottom - 14) + "px";
+    menu.textContent = ""; menu.hidden = false; btn.setAttribute("aria-expanded", "true");
+    const host = document.createElement("div"); host.className = "pick-host"; menu.appendChild(host);
+    const note = document.createElement("p"); note.className = "pick-note"; menu.appendChild(note);
     let listed = [];
     try { listed = await window.StudyBuilder.listStudies(SB_BASE + "studies/index.json"); }
     catch (e) { note.textContent = "The rest of study.builder's studies need the network, and this page cannot reach it from here. These two work without it."; }
+    if (menu.hidden) return;
     if (!listed.some((one) => one.id === PILOT)) listed = [COPIED].concat(listed);
     const waiting = listed.filter((one) => !one.build && one.id !== PILOT).length;
-    if (waiting) note.textContent = (listed.length - waiting) + " of study.builder's " + listed.length + " studies have their data ready and can be played. The other " + waiting + " are listed with their plan; they play here once study.builder has built them.";
+    if (waiting) note.textContent = waiting + " of these have no data built yet. They play here once study.builder has built them.";
     const now = mode === "arcade" ? MADE_UP.id : (S && S.cfg && S.cfg.listed) || PILOT;
-    widget = window.StudyBuilder.mountPicker(host, {
+    pickWidget = window.StudyBuilder.mountPicker(host, {
       studies: listed.concat([MADE_UP]), picked: now, theme: "light", label: "Studies to play",
       onPick: async (entry) => {
-        if (entry.id === MADE_UP.id) return start("arcade");
+        if (entry.id === MADE_UP.id) { closeChooser(); return start("arcade"); }
         // The pilot is copied into this page: it opens with no fetch.
-        if (entry.id === PILOT && canBuild) return start("built");
-        if (!entry.build) { note.textContent = entry.name + ": study.builder has this study's plan but has not built its data yet, so there is nothing to play. Pick one marked Data ready, or the made-up trial."; return; }
-        note.textContent = "Fetching " + entry.name + "…";
-        try { const got = await window.StudyBuilder.openListed(entry); start("built", null, got.study, entry.id); }
+        if (entry.id === PILOT && canBuild) { closeChooser(); return start("built"); }
+        if (!entry.build) { note.textContent = entry.name + ": study.builder has this study's plan but has not built its data yet, so there is nothing to play."; note.scrollIntoView({ block: "nearest" }); return; }
+        note.textContent = "Fetching " + entry.name + "…"; note.scrollIntoView({ block: "nearest" });
+        try { const got = await window.StudyBuilder.openListed(entry); closeChooser(); closeViz(); start("built", null, got.study, entry.id); }
         catch (e) { note.textContent = String(e && e.message ? e.message : e); }
       }
     });
   }
+  document.addEventListener("click", (e) => { const m = $("pickMenu"); if (!m.hidden && !m.contains(e.target) && !$("pick").contains(e.target)) closeChooser(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("pickMenu").hidden) { closeChooser(); $("pick").focus(); } });
+  window.addEventListener("resize", () => { if (!$("pickMenu").hidden) closeChooser(); });
   // What the project is. Opens by itself on a first visit, and from the info button after that.
   const SEEN = "simstudy.about.seen";
   function openAbout() {
