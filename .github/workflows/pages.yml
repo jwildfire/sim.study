@@ -1,0 +1,51 @@
+# Publishes the site to the gh-pages branch, which GitHub Pages serves.
+#   push to main -> the branch root (dev/ is left alone)
+#   push to dev  -> dev/
+# There is no build step: the files are copied as they are.
+name: Pages
+
+on:
+  push:
+    branches: [main, dev]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Publish to gh-pages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: src
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: site
+      - name: Copy the files
+        run: |
+          if [ "$GITHUB_REF_NAME" = "main" ]; then
+            rsync -a --delete --exclude .git --exclude .github --exclude dev src/ site/
+          else
+            mkdir -p site/dev
+            rsync -a --delete --exclude .git --exclude .github src/ site/dev/
+          fi
+          touch site/.nojekyll
+      - name: Commit and push
+        working-directory: site
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "Nothing changed."; exit 0; fi
+          git commit -q -m "Publish $GITHUB_REF_NAME at ${GITHUB_SHA::7}"
+          for try in 1 2 3; do
+            git push origin HEAD:gh-pages && exit 0
+            git pull -q --rebase origin gh-pages
+          done
+          exit 1
