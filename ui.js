@@ -188,21 +188,17 @@
   // What the project is. Opens by itself on a first visit, and from the info button after that.
   const SEEN = "simstudy.about.seen";
   function openAbout() {
-    const body = overlay("About Sim Study", "A clinical trial you can play, pause and speed up", "sb about");
+    const body = overlay("What is simstudy?", "An end-to-end clinical trial simulator", "sb about");
+    const can = ["Run a study on a clock: sites open, participants enrol, data arrives", "Cut the raw data every day and take an operational snapshot every week", "Review every site's risk each month, with amber and red flags", "Review safety blinded, then lock the database and analyse by arm", "Draw the charts with safety.viz and gsm.viz", "Play any study that study.builder has built"];
+    const cannot = ["Open and close data queries", "Make SDTM datasets and define.xml", "Make submission-grade tables, listings and figures", "Write the clinical study report"];
+    const row = (ok) => (t) => "<li class='" + (ok ? "yes" : "no") + "'><i aria-hidden='true'>" + (ok ? "✓" : "✗") + "</i><span>" + (ok ? "" : "<span class='sr'>Not yet: </span>") + t + "</span></li>";
     body.innerHTML =
-      "<p><b>Sim Study puts a clock on a simulated clinical trial.</b> Press Play and the study runs a day at a time: sites open, participants enrol, data arrives, risk reviews flag sites, the database locks and the analysis comes out. The sites are drawn as a small city around the sponsor's campus.</p>" +
-      "<h3>How to use it</h3><ul>" +
-      "<li><b>Play</b> starts and stops the clock. The button beside it sets the speed: a day, a week or a month a second.</li>" +
-      "<li><b>Study</b> lists the studies you can play.</li>" +
-      "<li><b>Click a site</b> in the city to follow it. Its roof is its risk colour.</li>" +
-      "<li><b>The tabs</b> on the right show the study as it stands today: the overview, the day's data, the week, safety, the road to submission and the report.</li></ul>" +
-      "<h3>What is real</h3><ul>" +
-      "<li>Every row is synthetic. A flag on a simulated site says nothing about any real one.</li>" +
-      "<li>It is a prototype. Nothing here is qualified, and nothing here is a submission.</li></ul>" +
-      "<h3>What it is built from</h3>" +
-      "<p>Sim Study is a thin layer over open source projects: <a href='https://github.com/jwildfire/study.builder' target='_blank' rel='noopener'>study.builder</a> builds each study, <a href='https://github.com/Gilead-Public/gsm.core' target='_blank' rel='noopener'>Good Statistical Monitoring</a> simulates the data and scores the sites, and <a href='https://github.com/jwildfire/safety.viz' target='_blank' rel='noopener'>safety.viz</a> and <a href='https://github.com/Gilead-Public/gsm.viz' target='_blank' rel='noopener'>gsm.viz</a> draw the charts. The code and the full list are on <a href='https://github.com/jwildfire/sim.study' target='_blank' rel='noopener'>GitHub</a>.</p>" +
-      "<p class='ss'><button id='aboutGo' class='primary'>Got it</button></p>";
-    $("aboutGo").addEventListener("click", closeViz);
+      "<p class='lead'>It's an end-to-end clinical trial simulator!</p>" +
+      "<p>simstudy uses open source tools to simulate clinical trials. It's still an experiment, but right now it can:</p>" +
+      "<ul class='cando'>" + can.map(row(true)).join("") + cannot.map(row(false)).join("") + "</ul>" +
+      "<p>Click the \"play\" button to see it in action or see the <a href='https://github.com/jwildfire/sim.study#readme' target='_blank' rel='noopener'>readme</a> for more info!</p>" +
+      "<p class='ss'><button id='aboutGo' class='primary'>▶ Play</button> <span class='soft'>Every row is synthetic.</span></p>";
+    $("aboutGo").addEventListener("click", () => { closeViz(); playing = true; render(); });
     try { localStorage.setItem(SEEN, "1"); } catch (e) { /* no storage here: the panel opens again next visit */ }
   }
   function firstVisit() { try { return !localStorage.getItem(SEEN); } catch (e) { return false; } }

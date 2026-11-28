@@ -16,7 +16,7 @@ submission.
 ## What it does
 
 - **A clock.** Play and pause; the speed button unfolds a day, a week or a month per second, and single days.
-- **An About panel.** The ⓘ button says what the project is. It opens by itself on a first visit; the
+- **A "What is simstudy?" panel.** The ⓘ button says what the project is and what it can and cannot do yet. It opens by itself on a first visit; the
   browser remembers that it has been seen, and nothing else is stored.
 - **A list of studies to pick from.** The Study button lists every study in study.builder's feed, a line
   each, and the made-up trial. Pick one marked Data ready and it plays from day one; the others are
