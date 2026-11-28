@@ -12,7 +12,7 @@ the analysis comes out. It is drawn as a small city, with the sites around a spo
 
 *Orange shows you round: 44 seconds from the first site opening to the results by arm. The stickers of Orange the cat are from Jeremy Wildfire's [R/Pharma 2026 keynote](https://jwildfire.github.io/keynote/). The clip is recorded from the page itself by [`docs/demo/record.mjs`](docs/demo/record.mjs); only the cursor, the orange rings and the captions are drawn over it.*
 
-Status: v0.3.0, a prototype. Every row is synthetic. Nothing here is qualified, and nothing here is a
+Status: v0.3.1, a prototype. Every row is synthetic. Nothing here is qualified, and nothing here is a
 submission.
 
 ## What it does
