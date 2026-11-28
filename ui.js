@@ -263,7 +263,7 @@
 
   // what a count gained in each week: a bar a week across the whole study, on one scale, so the bars fill in as the clock runs
   function weekBars(key, color) {
-    const W = 150, H = 20, D = S.daily, n = D.length, weeks = Math.floor(S.last / 7) + 1, bw = (W - 2) / weeks, ym = Math.max(1, S.weekMax[key] || 0);
+    const W = 150, H = 20, D = S.daily || [], n = D.length, weeks = Math.floor((S.last || 0) / 7) + 1, bw = (W - 2) / weeks, ym = Math.max(1, (S.weekMax || {})[key] || 0);
     let out = "<svg class='spark' viewBox='0 0 " + W + " " + H + "' role='img' aria-label='New each week'><line x1='0' y1='" + (H - 0.5) + "' x2='" + W + "' y2='" + (H - 0.5) + "' stroke='#d0cab8'/>";
     if (n) for (let w = 0; w * 7 < n; w++) {
       const end = D[Math.min(n - 1, w * 7 + 6)][key], start = w ? D[w * 7 - 1][key] : 0, gain = end - start; if (gain <= 0) continue;
@@ -273,7 +273,8 @@
     return out + "</svg>";
   }
   function metrics() {
-    const D = S.daily, now = D[D.length - 1], was = D[Math.max(0, D.length - 8)];
+    // a browser holding an older built.js for a few minutes after a release has no daily counts: say so, do not break
+    const D = S.daily || [], now = D[D.length - 1], was = D[Math.max(0, D.length - 8)];
     if (!now) return "<h3>As the clock stands</h3><p class='soft'>Press Play. The counts start with the first day's data.</p>";
     const has = (id) => S.forms.some((f) => f[0] === id);
     const rows = [["screened", "Participants screened", "#5c7fb8", true], ["enrolled", "Enrolled", "#5c7fb8", true, "of " + S.cfg.target + " planned"], ["sites", "Sites open", "#6a8f5c", true, "of " + S.sites.length],

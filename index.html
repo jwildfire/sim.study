@@ -68,6 +68,8 @@
   #pick { max-width:42vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   #vizBody.sb { font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; color:#15171a; }
   #info { padding:5px 8px; font-size:14px; margin-left:-6px; }
+  .ss a.btn { font:600 12px/1 var(--mono); color:var(--ink); background:var(--face); padding:6px 9px; text-decoration:none; white-space:nowrap; border:2px solid; border-color:var(--hi) var(--dk) var(--dk) var(--hi); }
+  .ss a.btn:active { border-color:var(--dk) var(--hi) var(--hi) var(--dk); background:#aeb3b8; } .ss a.btn:focus-visible { outline:2px solid var(--navy); outline-offset:1px; }
   #vizBody.about { max-width:700px; } #vizBody.about h3 { margin:1.1rem 0 .3rem; font:700 12px/1.3 var(--mono); text-transform:uppercase; letter-spacing:.06em; color:#444; }
   #vizBody.about .lead { font-size:1.25rem; font-weight:700; margin:0 0 .5rem; } #vizBody.about a { color:var(--navy); }
   .cando { list-style:none; margin:.5rem 0 .9rem; padding:0; } .cando li { display:flex; gap:.6rem; margin:.3rem 0; }
@@ -105,6 +107,7 @@
 <header id="bar" class="bevel ss">
   <h1 title="Sim Study">SIM STUDY</h1>
   <button id="info" aria-label="What is simstudy?" title="What is simstudy?">ⓘ</button>
+  <a id="gh" class="btn" href="https://github.com/jwildfire/sim.study" target="_blank" rel="noopener" title="The code and the README, on GitHub">GitHub ↗</a>
   <button id="pick" aria-haspopup="true" aria-expanded="false" aria-controls="pickMenu" title="Choose a study from study.builder's portfolio, or the made-up trial">Study ▾</button>
   <button id="speedBtn" aria-expanded="false" aria-controls="timeMore" title="Speed and single steps">1 wk/s ▾</button>
   <span id="timeMore" hidden>
@@ -141,8 +144,9 @@
 <script src="vendor/safety.viz/safety.viz.js"></script>
 <script src="vendor/gsm.viz/index.js"></script>
 <script src="data/cdisc-pilot-protocol.study.js"></script>
-<script src="sim.js"></script>
-<script src="built.js"></script>
-<script src="ui.js"></script>
+<!-- The three scripts change together: the version on each makes a browser fetch them together. -->
+<script src="sim.js?v=0.3.1"></script>
+<script src="built.js?v=0.3.1"></script>
+<script src="ui.js?v=0.3.1"></script>
 </body>
 </html>
