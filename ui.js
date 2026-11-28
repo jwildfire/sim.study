@@ -9,7 +9,8 @@
   const canBuild = !!(window.StudyBuilder && window.SIM_STUDY_FILE && window.DecompressionStream);
 
   let S, mode = "arcade", opened = null, speed = 7, playing = false, acc = 0, sel = null, tab = "over", vans = [], widget = null, lastT = 0, dirty = true, lastRender = 0, newsN = -1;
-  const TABS = [["over", "Overview"], ["today", "Daily cut"], ["week", "Weekly"], ["safety", "Safety"], ["sub", "Submission"], ["csr", "Report"]];
+  // a tab a department, each named for its building in the city: [tab, name, building]
+  const TABS = [["over", "HQ", "hq"], ["today", "Data hub", "hub"], ["clean", "Data cleaning", "dm"], ["week", "Monitoring", "rbqm"], ["safety", "Safety", "safety"], ["csr", "Statistics", "stats"], ["sub", "Regulatory", "reg"]];
   const FORMS = [["DM", "Demographics"], ["VS", "Vital signs"], ["LB", "Laboratory"], ["EX", "Dosing"], ["AE", "Adverse events"], ["DS", "Disposition"], ["DV", "Protocol deviations"]];
   const ARMC = ["#888888", "#d0661f", "#1f3a6e", "#4f9c94", "#8a6bb0"];
   const VIZ = [["aeExplorer", "ADAE", "Adverse Event Explorer"], ["aeTimelines", "ADAE", "Adverse Event Timelines"], ["hepExplorer", "ADLB", "Hepatic Safety Explorer"], ["resultsOverTime", "ADLB", "Results Over Time"], ["histogram", "ADLB", "Safety Histogram"]];
@@ -26,6 +27,7 @@
   // ---------- the city ----------
   const G = 18, RING = [[2, 2], [6, 1], [11, 1], [15, 2], [16, 6], [16, 11], [15, 15], [11, 16], [6, 16], [2, 15], [1, 11], [1, 6]];
   const CAMPUS = [
+    { k: "hq", name: "HQ", x: 9.05, y: 9.8, w: 1.15, d: 1.1, h: 36, col: "#3d4a5c" },
     { k: "hub", name: "Data hub", x: 8.25, y: 7.75, w: 1.5, d: 1.5, h: 64, col: "#5c7fb8" },
     { k: "dm", name: "Data cleaning", x: 6.4, y: 7.2, w: 1.2, d: 1.2, h: 24, col: "#b8865c" },
     { k: "rbqm", name: "Monitoring", x: 6.4, y: 9.3, w: 1.2, d: 1.2, h: 40, col: "#8a6bb0" },
@@ -88,8 +90,9 @@
   }
   function campusOn(k) {
     const ph = S.phase, running = ph === "enrolling" || ph === "treatment" || ph === "cleaning";
+    if (k === "hq") return true;
     if (k === "hub") return ph !== "start-up";
-    if (k === "dm") return running && (S.openQ > 0 || S.pending > 0);
+    if (k === "dm") return running && (built() ? S.forms.some(([f]) => /^(QUERY|DATAENT|DATACHG)$/.test(f)) : S.openQ > 0 || S.pending > 0);
     if (k === "rbqm") return running && (built() ? !!S.gsm : S.snapshots.length > 0);
     if (k === "safety") return running && S.aes.length > 0;
     if (k === "stats") return ph === "analysis" || ph === "reporting" || S.done;
@@ -114,7 +117,9 @@
       if (b.k === "hub") { const top = P(b.x + b.w / 2, b.y + b.d / 2, h); c.strokeStyle = "#222"; c.lineWidth = 2; c.beginPath(); c.moveTo(top[0], top[1]); c.lineTo(top[0], top[1] - TW * 0.5); c.stroke(); if (on && Math.floor(t / 500) % 2) { c.fillStyle = "#ff4b3e"; c.beginPath(); c.arc(top[0], top[1] - TW * 0.5, 2.5, 0, 7); c.fill(); } }
       let text = b.name;
       if (b.k === "dm" && S.openQ) text += " · " + S.openQ + " open";
-      labels.push([P(b.x + b.w / 2, b.y + b.d / 2, h + TW * 0.12), text, on ? "rgba(31,58,110,.9)" : "rgba(60,62,66,.75)"]);
+      const open = TABS.some((x) => x[0] === tab && x[2] === b.k);
+      b.at = P(b.x + b.w / 2, b.y + b.d / 2, h / 2); b.reach = Math.max(TW * 0.75, h * 0.6);
+      labels.push([P(b.x + b.w / 2, b.y + b.d / 2, h + TW * 0.12), text, open ? "#fff" : on ? "rgba(31,58,110,.9)" : "rgba(60,62,66,.75)", open ? "#15171a" : null]);
     } }));
     S.sites.forEach((s, i) => { if (!SPOT[i]) return; const [sx, sy] = SPOT[i]; list.push({ z: sx + sy + 1, f: () => {
       if (sel === i) { c.lineWidth = 3; poly([P(sx, sy), P(sx + 1, sy), P(sx + 1, sy + 1), P(sx, sy + 1)], "rgba(255,255,255,.25)", "#fff"); }
@@ -285,7 +290,7 @@
       const C = S.cfg;
       return "<h2>" + esc(C.id) + " · made-up trial</h2><p>" + esc(C.title) + ".</p><div class='facts'><span>Phase 3</span><span>" + C.target + " patients</span><span>" + S.sites.length + " sites</span><span>2 arms</span><span>Seed " + S.seed + "</span></div>" +
         "<p><b>Primary endpoint.</b> " + esc(C.primary) + ".</p><h3>Visits</h3><table>" + S.visits.map((v) => "<tr><td>" + v.n + "</td><td>day " + v.d + "</td></tr>").join("") + "</table>" +
-        "<div class='note'>Invented in this page. Three sites have a hidden problem: watch the Weekly tab, pick a site and send a monitor. Press <b>Study</b> to play a study from study.builder instead.</div>";
+        "<div class='note'>Invented in this page. Three sites have a hidden problem: watch Monitoring, pick a site and send a monitor. Press <b>Study</b> to play a study from study.builder instead.</div>";
     }
     const snap = S.asOf(), O = window.StudyBuilder.overviewOf(snap || S.study), W = window.StudyBuilder.overviewOf(S.study);
     let h = "<h2>" + esc(O.id) + (S.cfg.nick ? " · " + esc(S.cfg.nick) : "") + "</h2><p>" + esc(S.cfg.title) + "</p>";
@@ -311,11 +316,25 @@
     h += "<table><tr><th>" + (built() ? "Raw table" : "Form") + "</th><th>File</th><th>New today</th><th>To date</th></tr>" + forms.map(([k, n]) => "<tr><td>" + n + "</td><td class='soft'>" + (built() ? k : k.toLowerCase()) + ".csv</td><td>" + cut[k] + "</td><td>" + S.total[k] + "</td></tr>").join("") + "</table>";
     h += "<p class='soft'>Archived as raw/" + iso(cut.day) + "/ · " + cut.senders.length + " site" + (cut.senders.length === 1 ? "" : "s") + " sent data</p>";
     if (built()) {
-      h += dayCharts(false) + "<div class='note'><b>Where this comes from.</b> gsm.datasim made every row, inside study.builder. Sim Study only places each row on its own date. Data cleaning is not shown: this study file was built without the query and data-entry tables, which gsm.datasim can make.</div>";
+      h += dayCharts(false) + "<div class='note'><b>Where this comes from.</b> gsm.datasim made every row, inside study.builder. Sim Study only places each row on its own date.</div>";
     } else {
-      h += "<h3>Data cleaning</h3><div class='stats'>" + stat(cut.qo, "queries raised") + stat(cut.qc, "queries closed") + stat(S.openQ, "open now") + stat(S.pending, "records not yet entered") + "</div>" + dayCharts(true);
+      h += dayCharts(false);
     }
     return h;
+  }
+
+  function pClean() {
+    const cut = S.cuts[S.cuts.length - 1];
+    let h = "<h2>Data cleaning</h2>";
+    if (built()) {
+      const mine = S.forms.filter(([k]) => /^(QUERY|DATAENT|DATACHG)$/.test(k));
+      if (!mine.length) return h + "<p class='soft'>Queries raised and answered, data entry and data changes.</p><div class='note'><b>Nothing to clean in this study file.</b> It was built without the query, data-entry and data-change tables, which gsm.datasim can make. A study built with them fills this department.</div>";
+      if (!cut) return h + "<p class='soft'>Press Play. The first rows arrive when the first site opens.</p>";
+      return h + "<p class='soft'>Rows of the study's query, data-entry and data-change tables, each on its own date.</p><table><tr><th>Raw table</th><th>File</th><th>New today</th><th>To date</th></tr>" + mine.map(([k, n]) => "<tr><td>" + n + "</td><td class='soft'>" + k + ".csv</td><td>" + cut[k] + "</td><td>" + S.total[k] + "</td></tr>").join("") + "</table>";
+    }
+    if (!cut) return h + "<p class='soft'>Press Play. Queries start with the first day's data.</p>";
+    return h + "<p class='soft'>Queries on what the sites sent, and records still to be entered, as of " + date(cut.day) + ".</p><div class='stats'>" + stat(cut.qo, "queries raised") + stat(cut.qc, "queries closed") + stat(S.openQ, "open now") + stat(S.pending, "records not yet entered") + "</div>" +
+      cv("cq", (el) => { const xm = Math.max(28, S.day); chart(el, { xmax: xm, ymax: Math.max(10, ...S.cuts.map((x) => x.open)) * 1.1, xl: weekTicks(xm), series: [{ name: "open queries", color: "#b8865c", pts: S.cuts.map((x) => [x.day, x.open]) }] }); });
   }
 
   function siteCard(s) {
@@ -416,7 +435,7 @@
     return h;
   }
 
-  const PANELS = { over: pOver, today: pToday, week: pWeek, safety: pSafety, sub: pSub, csr: pCsr };
+  const PANELS = { over: pOver, today: pToday, clean: pClean, week: pWeek, safety: pSafety, sub: pSub, csr: pCsr };
   function render() {
     dirty = false; if (!S) return;
     const d = Math.max(0, S.day);
@@ -429,7 +448,7 @@
     $("speedBtn").textContent = ({ 1: "1 day/s", 7: "1 wk/s", 30: "1 mo/s" })[speed] + ($("timeMore").hidden ? " ▸" : " ◂");
     $("pick").textContent = "Study: " + (built() ? S.cfg.id : "made-up trial") + " ▾";
     document.querySelectorAll(".arcade").forEach((el) => { el.hidden = built(); });
-    $("tab-csr").textContent = built() ? "Results" : "Report";
+    TABS.forEach(([k, , b]) => { const el = $("tab-" + k); if (el) el.classList.toggle("lit", campusOn(b)); });
     document.querySelectorAll("[data-tab]").forEach((b) => { b.classList.toggle("on", b.dataset.tab === tab); b.setAttribute("aria-selected", b.dataset.tab === tab); });
     const p = $("panel"), top = p.scrollTop;
     charts.length = 0; p.innerHTML = PANELS[tab](); p.scrollTop = top;
@@ -477,7 +496,7 @@
     S = made; layout(S.sites.length); sel = null; vans = []; acc = 0; newsN = -1; tab = "over"; dirty = true; render();
   }
 
-  $("tabs").innerHTML = TABS.map(([k, n]) => "<button role='tab' id='tab-" + k + "' data-tab='" + k + "'>" + n + "</button>").join("");
+  $("tabs").innerHTML = TABS.map(([k, n, b]) => "<button role='tab' id='tab-" + k + "' data-tab='" + k + "'><i style='background:" + CAMPUS.find((x) => x.k === b).col + "'></i>" + n + "</button>").join("");
   $("tabs").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; $("panel").scrollTop = 0; render(); } });
   $("play").addEventListener("click", () => { playing = !playing; if (playing) closeViz(); render(); });
   $("speedBtn").addEventListener("click", () => { const m = $("timeMore"); m.hidden = !m.hidden; $("speedBtn").setAttribute("aria-expanded", String(!m.hidden)); render(); });
@@ -496,6 +515,9 @@
     if (!S) return;
     const b = e.target.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top; let best = null, bd = TW * 0.9;
     S.sites.forEach((s, i) => { if (!SPOT[i]) return; const p = P(SPOT[i][0] + 0.5, SPOT[i][1] + 0.5, (siteH(s) * TW) / 80), d = Math.hypot(p[0] - x, p[1] - y); if (d < bd) { bd = d; best = i; } });
+    let dept = null, dd = Infinity;
+    if (best === null) CAMPUS.forEach((b) => { if (!b.at) return; const d = Math.hypot(b.at[0] - x, b.at[1] - y); if (d < b.reach && d < dd) { dd = d; dept = b.k; } });
+    if (dept) { tab = TABS.find((t) => t[2] === dept)[0]; $("panel").scrollTop = 0; render(); return; }
     sel = best; if (best !== null) tab = "week"; render();
   });
   document.addEventListener("keydown", (e) => { if (e.code === "Space" && e.target.tagName !== "BUTTON" && e.target.tagName !== "INPUT") { e.preventDefault(); playing = !playing; render(); } });
