@@ -1,0 +1,41 @@
+{
+ "about": "Copies of other projects' built files, byte for byte, so the page runs with no network. Checked 26 November 2026.",
+ "files": [
+  {
+   "file": "vendor/study.builder/study.builder.js",
+   "from": "https://jwildfire.github.io/study.builder/study.builder.js",
+   "project": "jwildfire/study.builder",
+   "version": "0.5.0 (tag v0.5.0, commit e99b45e0a2)",
+   "licence": "Apache-2.0",
+   "bytes": 172031,
+   "sha256": "350bb5efc2b12879c807010629fd1011ee5116669aa785e4f2d9f946eb0d606b"
+  },
+  {
+   "file": "data/cdisc-pilot-protocol.study.json.gz",
+   "from": "https://jwildfire.github.io/study.builder/presets/cdisc-pilot-protocol.study.json.gz",
+   "project": "jwildfire/study.builder",
+   "version": "ready-made study, key sha256:9e41ba70\u2026",
+   "licence": "Apache-2.0; every row synthetic, made by gsm.datasim 2.1.0; schedule from CDISC's pilot USDM file (DDF-RA, CC-BY-4.0)",
+   "bytes": 2312936,
+   "sha256": "d685afa9434d5fbc02a5e10aa6c7fd48927a6aa21924bb5f8aac77c8742c53b2"
+  },
+  {
+   "file": "vendor/safety.viz/safety.viz.js",
+   "from": "https://raw.githubusercontent.com/jwildfire/safety.viz/main/dist/safety.viz-1.12.0/safety.viz.js",
+   "project": "jwildfire/safety.viz",
+   "version": "1.12.0",
+   "licence": "Apache-2.0",
+   "bytes": 1651722,
+   "sha256": "d10d73a08d13ba17cef274d2d857b71d1834687b3f7aec5456c9dcf04603bc7d"
+  },
+  {
+   "file": "vendor/gsm.viz/index.js",
+   "from": "https://raw.githubusercontent.com/Gilead-Public/gsm.viz/v2.4.1/index.js",
+   "project": "Gilead-Public/gsm.viz",
+   "version": "2.4.1",
+   "licence": "Apache-2.0",
+   "bytes": 1016184,
+   "sha256": "c2965dce71941dac902e581f72543b789dc8b2a234fc9ba68ae19e371232d4d0"
+  }
+ ]
+}
