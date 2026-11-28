@@ -85,6 +85,13 @@
       });
     });
     S.hasQueries = has("raw", "QUERY");
+    // what each count comes to by the end of the file, so a trend line can be drawn against it as the clock runs
+    S.finals = { screened: 0, enrolled: 0, sites: S.sites.length, ae: 0, sae: 0, pd: 0, visits: 0, left: 0, stopped: 0 };
+    days.forEach((d) => {
+      S.finals.visits += d.n.VISIT || 0; S.finals.left += d.n.STUDCOMP || 0; S.finals.stopped += d.n.SDRGCOMP || 0;
+      d.ev.forEach((e) => { if (e[0] === "enroll") { S.finals.screened++; if (e[2]) S.finals.enrolled++; } if (e[0] === "ae") { S.finals.ae++; if (e[2].ser) S.finals.sae++; } if (e[0] === "pd") S.finals.pd++; });
+    });
+    S.daily = [];
     const lastEnroll = days.reduce((a, d, i) => (d.ev.some((e) => e[0] === "enroll" && e[2]) ? i : a), 0);
     const history = (study.history || []).filter((h) => !h.problem).map((h) => ({ date: h.date, number: h.number, day: D(h.date) }));
     const lockDay = Math.max(D(STUDY.db_lock_dt) || 0, last + 7);
@@ -163,6 +170,9 @@
         if (e[0] === "pd") { s.pdN++; cut.pd++; }
         if (e[0] === "comp") { s.on = Math.max(0, s.on - 1); if (e[2]) s.completed++; else s.dropped++; }
       });
+      // the counts as the clock stands today: every one is rows of the study dated up to now
+      if (d <= last) S.daily.push({ day: d, screened: S.nScreened, enrolled: S.nRand, sites: S.sites.filter((x) => x.active).length, ae: S.aes.length, sae: S.aes.filter((x) => x.ser).length,
+        pd: S.sites.reduce((n, x) => n + x.pdN, 0), visits: S.total.VISIT || 0, left: S.total.STUDCOMP || 0, stopped: S.total.SDRGCOMP || 0 });
       S.pending = d <= last ? cut.n : 0;
       if (d <= lockDay) {
         S.cuts.push(cut); deliv("cuts").count++;

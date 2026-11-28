@@ -22,8 +22,9 @@ submission.
   each, and the made-up trial. The list drops down from the bar. Pick one marked Data ready and it plays from day one; the others are
   listed with their plan and play once study.builder has built them. The list is study.builder's studies
   feed, drawn here in this page's own style; a study file is checked against the feed's checksum before it opens.
-- **A study overview.** study.builder's facts and counts for the study as the clock stands, and its full
-  study view (every layer, table and participant) one press away.
+- **A study overview.** A table of counts that moves with the clock (screened, enrolled, sites open, visits,
+  adverse events, deviations, who left), each with a trend line from the first day to the last; then
+  study.builder's facts for the study, and its full study view (every layer, table and participant) one press away.
 - **Daily raw data cuts.** The rows of each raw table that are dated today, and to date.
 - **Weekly operational snapshots.** Enrolment against plan, screening and discontinuations.
 - **Risk-based quality monitoring.** Each month's review of every site on eight metrics, with

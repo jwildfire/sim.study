@@ -256,6 +256,30 @@
     return (withQ ? cv("cq", (el) => chart(el, { xmax: xm, ymax: Math.max(10, ...S.cuts.map((x) => x.open)) * 1.1, xl: weekTicks(xm), series: [{ name: "open queries", color: "#b8865c", pts: S.cuts.map((x) => [x.day, x.open]) }] })) : "") +
       cv("cn", (el) => chart(el, { xmax: xm, ymax: Math.max(10, ...S.cuts.map((x) => x.n)) * 1.1, xl: weekTicks(xm), series: [{ name: "records per day", color: "#5c7fb8", bars: true, pts: S.cuts.map((x) => [x.day, x.n]) }] })); };
 
+  // a count's trend to today: the line runs across the whole study and up to what the count comes to, so it grows as the clock does
+  function spark(key, color) {
+    const W = 150, H = 20, D = S.daily, n = D.length, xm = Math.max(1, S.last), ym = Math.max(1, S.finals[key] || 0, n ? D[n - 1][key] : 0);
+    if (!n) return "<svg class='spark' viewBox='0 0 " + W + " " + H + "' aria-hidden='true'><line x1='0' y1='" + (H - 1) + "' x2='" + W + "' y2='" + (H - 1) + "' stroke='#d0cab8'/></svg>";
+    const step = Math.max(1, Math.ceil(n / W)), pts = [];
+    for (let i = 0; i < n; i += step) pts.push(D[i]);
+    if (pts[pts.length - 1] !== D[n - 1]) pts.push(D[n - 1]);
+    const x = (d) => ((d.day / xm) * (W - 4) + 2).toFixed(1), y = (d) => (H - 2 - (d[key] / ym) * (H - 4)).toFixed(1), end = D[n - 1];
+    return "<svg class='spark' viewBox='0 0 " + W + " " + H + "' role='img' aria-label='" + end[key] + " by day " + end.day + "'><line x1='0' y1='" + (H - 1) + "' x2='" + W + "' y2='" + (H - 1) + "' stroke='#d0cab8'/>" +
+      "<polyline fill='none' stroke='" + color + "' stroke-width='1.5' points='" + pts.map((d) => x(d) + "," + y(d)).join(" ") + "'/><circle cx='" + x(end) + "' cy='" + y(end) + "' r='2' fill='" + color + "'/></svg>";
+  }
+  function metrics() {
+    const D = S.daily, now = D[D.length - 1], was = D[Math.max(0, D.length - 8)];
+    if (!now) return "<h3>As the clock stands</h3><p class='soft'>Press Play. The counts start with the first day's data.</p>";
+    const has = (id) => S.forms.some((f) => f[0] === id);
+    const rows = [["screened", "Participants screened", "#5c7fb8", true], ["enrolled", "Enrolled", "#5c7fb8", true, "of " + S.cfg.target + " planned"], ["sites", "Sites open", "#6a8f5c", true, "of " + S.sites.length],
+      ["visits", "Visits", "#5c7fb8", has("VISIT")], ["ae", "Adverse events", "#b8865c", has("AE")], ["sae", "Serious adverse events", "#b85c5c", has("AE")],
+      ["pd", "Protocol deviations", "#b8865c", has("PD")], ["left", "Left the study", "#888", has("STUDCOMP")], ["stopped", "Stopped treatment", "#888", has("SDRGCOMP")]].filter((r) => r[3]);
+    const over = S.day > S.last;
+    return "<h3>As the clock stands · " + (over ? "all data in, day " + S.last : "day " + now.day) + "</h3><table class='metrics'><tr><th>Count</th><th class='num'>To date</th><th class='num'>Last 7 days</th><th>Trend, first day to last</th></tr>" +
+      rows.map((r) => { const gain = over ? 0 : now[r[0]] - (D.length > 1 ? was[r[0]] : 0);
+        return "<tr><td>" + r[1] + (r[4] ? " <span class='soft'>" + esc(r[4]) + "</span>" : "") + "</td><td class='num'><b>" + now[r[0]].toLocaleString("en-GB") + "</b></td><td class='num'>" + (gain > 0 ? "+" + gain.toLocaleString("en-GB") : "<span class='soft'>0</span>") + "</td><td>" + spark(r[0], r[2]) + "</td></tr>"; }).join("") + "</table>";
+  }
+
   function pOver() {
     if (!built()) {
       const C = S.cfg;
@@ -267,15 +291,15 @@
     let h = "<h2>" + esc(O.id) + (S.cfg.nick ? " · " + esc(S.cfg.nick) : "") + "</h2><p>" + esc(S.cfg.title) + "</p>";
     h += "<div class='facts'>" + W.facts.filter((f) => !/^(Study|Snapshot|Status)$/.test(f.label)).map((f) => "<span>" + esc(f.label) + ": " + esc(f.value) + "</span>").join("") + "<span>" + S.cfg.target + " planned</span><span>" + S.arms.length + " arms</span></div>";
     h += "<p><button data-view='study'>Open the full study view</button></p>";
+    h += metrics();
     if (snap) {
-      h += "<h3>As of " + esc(S.gsm.date) + " · snapshot " + S.gsm.number + "</h3><div class='stats'>" + O.counts.slice(0, 8).map((c) => stat(esc(c.value), esc(c.label) + (c.note ? " · " + esc(c.note) : ""))).join("") + "</div>";
-      h += "<h3>By country</h3><table><tr><th>Country</th><th>Sites</th><th>Participants</th></tr>" + O.countries.map((c) => "<tr><td>" + esc(c.country) + "</td><td>" + c.sites + "</td><td>" + c.participants + "</td></tr>").join("") + "</table>";
-    } else h += "<h3>As the clock stands</h3><p class='soft'>Press Play. study.builder's counts appear at the first month's snapshot.</p>";
+      h += "<h3>By country · as of " + esc(S.gsm.date) + ", snapshot " + S.gsm.number + "</h3><table><tr><th>Country</th><th>Sites</th><th>Participants</th></tr>" + O.countries.map((c) => "<tr><td>" + esc(c.country) + "</td><td>" + c.sites + "</td><td>" + c.participants + "</td></tr>").join("") + "</table>";
+    }
     if (S.arms.length) h += "<h3>Arms</h3><p>" + S.arms.map(esc).join(" · ") + (S.unblinded ? "" : " <span class='soft'>(blinded in the safety review until lock)</span>") + "</p>";
     h += "<h3>What the study holds, in all</h3><table><tr><th>Layer</th><th>Tables</th><th>Rows</th></tr>" + W.layers.map((l) => "<tr><td>" + esc(l.label) + "</td><td>" + l.tables + "</td><td>" + Number(l.rows).toLocaleString("en-GB") + "</td></tr>").join("") + "</table>";
     if (W.growth && W.growth.length > 1) h += "<h3>How it grows, snapshot by snapshot</h3><table><tr><th>Date</th><th>Participants</th><th>Sites</th><th>Visits</th><th>Events</th></tr>" + W.growth.map((g) => "<tr" + (S.gsm && g.number === S.gsm.number ? " class='sel'" : "") + "><td>" + esc(g.date) + "</td><td>" + g.participants + "</td><td>" + g.sites + "</td><td>" + g.visits + "</td><td>" + g.events + "</td></tr>").join("") + "</table>";
     else h += "<div class='note'>This study file keeps only its last snapshot, so there is one risk review, at the end. Studies built with every snapshot have one a month.</div>";
-    h += "<p class='soft'>Facts and counts are study.builder's own overview of the study.</p>";
+    h += "<p class='soft'>The counts by day are rows of the study, each placed on its own date. The facts, countries and layers are study.builder's own overview.</p>";
     return h;
   }
 
