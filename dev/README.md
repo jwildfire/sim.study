@@ -21,7 +21,7 @@ submission.
 - **A list of studies to pick from.** The Study button lists every study in study.builder's feed, a line
   each, and the made-up trial. The list drops down from the bar. Pick one marked Data ready and it plays from day one; the others are
   listed with their plan and play once study.builder has built them. The list is study.builder's studies
-  feed, drawn by its picker; a study file is checked against the feed's checksum before it opens.
+  feed, drawn here in this page's own style; a study file is checked against the feed's checksum before it opens.
 - **A study overview.** study.builder's facts and counts for the study as the clock stands, and its full
   study view (every layer, table and participant) one press away.
 - **Daily raw data cuts.** The rows of each raw table that are dated today, and to date.
@@ -59,7 +59,7 @@ Sim Study is a thin layer. The work is done by the projects below.
 
 | Block | What it does here | Whose |
 |---|---|---|
-| [study.builder](https://github.com/jwildfire/study.builder) 0.5.0 | Builds the study in layers (raw, mapped, ADaM, analysis, reporting) with a snapshot for every month. Sim Study reads its studies feed, mounts its picker and study view, reads its overview, and asks a study for itself as it stood on any date | Jeremy Wildfire |
+| [study.builder](https://github.com/jwildfire/study.builder) 0.5.0 | Builds the study in layers (raw, mapped, ADaM, analysis, reporting) with a snapshot for every month. Sim Study reads its studies feed, mounts its study view, reads its overview, and asks a study for itself as it stood on any date | Jeremy Wildfire |
 | [safety.viz](https://github.com/jwildfire/safety.viz) 1.12.0 | The safety charts: Adverse Event Explorer, Adverse Event Timelines, Hepatic Safety Explorer, Results Over Time, Safety Histogram | Jeremy Wildfire; an update of the [safetyGraphics](https://github.com/SafetyGraphics/safetyGraphics) renderers |
 | [gsm.datasim](https://github.com/Gilead-Public/gsm.datasim) 2.1.0 | Simulates every raw row, month by month | Gilead Sciences |
 | [gsm.mapping](https://github.com/Gilead-Public/gsm.mapping), [gsm.kri](https://github.com/Gilead-Public/gsm.kri), [gsm.reporting](https://github.com/Gilead-Public/gsm.reporting), [gsm.core](https://github.com/Gilead-Public/gsm.core) | Good Statistical Monitoring: map the raw data, score each site on eight metrics, and shape the results for charts | Gilead Sciences |

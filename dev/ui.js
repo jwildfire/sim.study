@@ -162,37 +162,44 @@
   const COPIED = { id: PILOT, kind: "settings", build: {}, name: "CDISC pilot protocol study", line: "Phase 2 · 120 participants · 12 sites · 7 months", mark: "Copied here" };
   const MADE_UP = { id: "sim:made-up", kind: "game", name: "Made-up trial", line: "Phase 3 · invented in this page · you can send monitors", mark: "Game" };
   // The list drops down from the Study button in the bar. The clock keeps its state while it is open.
-  let pickWidget = null;
-  function closeChooser() { const m = $("pickMenu"); if (pickWidget && pickWidget.destroy) { try { pickWidget.destroy(); } catch (e) { /* gone already */ } } pickWidget = null; m.hidden = true; m.textContent = ""; $("pick").setAttribute("aria-expanded", "false"); }
+  function closeChooser() { const m = $("pickMenu"); m.hidden = true; m.textContent = ""; $("pick").setAttribute("aria-expanded", "false"); }
   async function openChooser() {
     const menu = $("pickMenu"), btn = $("pick");
     if (!menu.hidden) return closeChooser();
-    const at = btn.getBoundingClientRect(), wide = Math.min(460, window.innerWidth - 16);
+    const at = btn.getBoundingClientRect(), wide = Math.min(400, window.innerWidth - 16);
     menu.style.width = wide + "px"; menu.style.top = Math.round(at.bottom + 2) + "px"; menu.style.left = Math.max(8, Math.min(at.left, window.innerWidth - wide - 8)) + "px";
     menu.style.maxHeight = Math.max(160, window.innerHeight - at.bottom - 14) + "px";
     menu.textContent = ""; menu.hidden = false; btn.setAttribute("aria-expanded", "true");
     const host = document.createElement("div"); host.className = "pick-host"; menu.appendChild(host);
-    const note = document.createElement("p"); note.className = "pick-note"; menu.appendChild(note);
+    const note = document.createElement("p"); note.className = "pick-note"; note.setAttribute("aria-live", "polite"); menu.appendChild(note);
     let listed = [];
     try { listed = await window.StudyBuilder.listStudies(SB_BASE + "studies/index.json"); }
     catch (e) { note.textContent = "The rest of study.builder's studies need the network, and this page cannot reach it from here. These two work without it."; }
     if (menu.hidden) return;
     if (!listed.some((one) => one.id === PILOT)) listed = [COPIED].concat(listed);
     const waiting = listed.filter((one) => !one.build && one.id !== PILOT).length;
-    if (waiting) note.textContent = waiting + " of these have no data built yet. They play here once study.builder has built them.";
+    if (waiting) note.textContent = waiting + " not built yet. They play here once study.builder has built them.";
     const now = mode === "arcade" ? MADE_UP.id : (S && S.cfg && S.cfg.listed) || PILOT;
-    pickWidget = window.StudyBuilder.mountPicker(host, {
-      studies: listed.concat([MADE_UP]), picked: now, theme: "light", label: "Studies to play",
-      onPick: async (entry) => {
-        if (entry.id === MADE_UP.id) { closeChooser(); return start("arcade"); }
-        // The pilot is copied into this page: it opens with no fetch.
-        if (entry.id === PILOT && canBuild) { closeChooser(); return start("built"); }
-        if (!entry.build) { note.textContent = entry.name + ": study.builder has this study's plan but has not built its data yet, so there is nothing to play."; note.scrollIntoView({ block: "nearest" }); return; }
-        note.textContent = "Fetching " + entry.name + "…"; note.scrollIntoView({ block: "nearest" });
-        try { const got = await window.StudyBuilder.openListed(entry); closeChooser(); closeViz(); start("built", null, got.study, entry.id); }
-        catch (e) { note.textContent = String(e && e.message ? e.message : e); }
-      }
+    // study.builder gives the list, each study's facts line and its mark; the rows are drawn here, in this page's style.
+    const SBL = window.StudyBuilder, pick = async (entry) => {
+      if (entry.id === MADE_UP.id) { closeChooser(); return start("arcade"); }
+      // The pilot is copied into this page: it opens with no fetch.
+      if (entry.id === PILOT && canBuild) { closeChooser(); return start("built"); }
+      if (!entry.build) { note.textContent = entry.name + ": no data built yet, so there is nothing to play."; return; }
+      note.textContent = "Fetching " + entry.name + "…";
+      try { const got = await SBL.openListed(entry); closeChooser(); closeViz(); start("built", null, got.study, entry.id); }
+      catch (e) { note.textContent = String(e && e.message ? e.message : e); }
+    };
+    host.setAttribute("role", "listbox"); host.setAttribute("aria-label", "Studies to play");
+    listed.concat([MADE_UP]).forEach((entry) => {
+      const ready = !!entry.build || entry.id === PILOT || entry.id === MADE_UP.id, row = document.createElement("button");
+      row.type = "button"; row.className = "prow" + (entry.id === now ? " on" : "") + (ready ? "" : " wait"); row.setAttribute("role", "option"); row.setAttribute("aria-selected", String(entry.id === now));
+      const name = document.createElement("b"); name.textContent = entry.name;
+      const facts = document.createElement("span"); facts.textContent = entry.line || SBL.factsLine(entry) || "";
+      const mark = document.createElement("i"); mark.textContent = entry.id === MADE_UP.id ? "Game" : ready ? "Ready" : "Not built";
+      row.title = entry.name; row.append(name, mark, facts); row.addEventListener("click", () => pick(entry)); host.appendChild(row);
     });
+    const first = host.querySelector(".on") || host.firstChild; if (first) first.focus();
   }
   document.addEventListener("click", (e) => { const m = $("pickMenu"); if (!m.hidden && !m.contains(e.target) && !$("pick").contains(e.target)) closeChooser(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("pickMenu").hidden) { closeChooser(); $("pick").focus(); } });
