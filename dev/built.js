@@ -85,12 +85,16 @@
       });
     });
     S.hasQueries = has("raw", "QUERY");
-    // what each count comes to by the end of the file, so a trend line can be drawn against it as the clock runs
-    S.finals = { screened: 0, enrolled: 0, sites: S.sites.length, ae: 0, sae: 0, pd: 0, visits: 0, left: 0, stopped: 0 };
-    days.forEach((d) => {
-      S.finals.visits += d.n.VISIT || 0; S.finals.left += d.n.STUDCOMP || 0; S.finals.stopped += d.n.SDRGCOMP || 0;
-      d.ev.forEach((e) => { if (e[0] === "enroll") { S.finals.screened++; if (e[2]) S.finals.enrolled++; } if (e[0] === "ae") { S.finals.ae++; if (e[2].ser) S.finals.sae++; } if (e[0] === "pd") S.finals.pd++; });
-    });
+    // the most any count gains in one week of the file, so the weekly bars keep one scale as the clock runs
+    S.weekMax = {};
+    { const wk = [], add = (d, k, n) => { const w = Math.floor(d / 7); wk[w] = wk[w] || {}; wk[w][k] = (wk[w][k] || 0) + n; };
+      days.forEach((d, i) => {
+        add(i, "visits", d.n.VISIT || 0); add(i, "left", d.n.STUDCOMP || 0); add(i, "stopped", d.n.SDRGCOMP || 0);
+        d.ev.forEach((e) => { if (e[0] === "enroll") { add(i, "screened", 1); if (e[2]) add(i, "enrolled", 1); } if (e[0] === "ae") { add(i, "ae", 1); if (e[2].ser) add(i, "sae", 1); } if (e[0] === "pd") add(i, "pd", 1); });
+      });
+      S.sites.forEach((x) => add(Math.min(x.actDay, last), "sites", 1));
+      // rows dated after the file's last day are counted on that day, so the last week is left out of the scale and its bar is cut at the top
+      wk.forEach((w, i) => { if (i === wk.length - 1 && wk.length > 2) return; Object.keys(w || {}).forEach((k) => { S.weekMax[k] = Math.max(S.weekMax[k] || 0, w[k]); }); }); }
     S.daily = [];
     const lastEnroll = days.reduce((a, d, i) => (d.ev.some((e) => e[0] === "enroll" && e[2]) ? i : a), 0);
     const history = (study.history || []).filter((h) => !h.problem).map((h) => ({ date: h.date, number: h.number, day: D(h.date) }));

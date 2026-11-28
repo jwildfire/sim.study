@@ -256,16 +256,16 @@
     return (withQ ? cv("cq", (el) => chart(el, { xmax: xm, ymax: Math.max(10, ...S.cuts.map((x) => x.open)) * 1.1, xl: weekTicks(xm), series: [{ name: "open queries", color: "#b8865c", pts: S.cuts.map((x) => [x.day, x.open]) }] })) : "") +
       cv("cn", (el) => chart(el, { xmax: xm, ymax: Math.max(10, ...S.cuts.map((x) => x.n)) * 1.1, xl: weekTicks(xm), series: [{ name: "records per day", color: "#5c7fb8", bars: true, pts: S.cuts.map((x) => [x.day, x.n]) }] })); };
 
-  // a count's trend to today: the line runs across the whole study and up to what the count comes to, so it grows as the clock does
-  function spark(key, color) {
-    const W = 150, H = 20, D = S.daily, n = D.length, xm = Math.max(1, S.last), ym = Math.max(1, S.finals[key] || 0, n ? D[n - 1][key] : 0);
-    if (!n) return "<svg class='spark' viewBox='0 0 " + W + " " + H + "' aria-hidden='true'><line x1='0' y1='" + (H - 1) + "' x2='" + W + "' y2='" + (H - 1) + "' stroke='#d0cab8'/></svg>";
-    const step = Math.max(1, Math.ceil(n / W)), pts = [];
-    for (let i = 0; i < n; i += step) pts.push(D[i]);
-    if (pts[pts.length - 1] !== D[n - 1]) pts.push(D[n - 1]);
-    const x = (d) => ((d.day / xm) * (W - 4) + 2).toFixed(1), y = (d) => (H - 2 - (d[key] / ym) * (H - 4)).toFixed(1), end = D[n - 1];
-    return "<svg class='spark' viewBox='0 0 " + W + " " + H + "' role='img' aria-label='" + end[key] + " by day " + end.day + "'><line x1='0' y1='" + (H - 1) + "' x2='" + W + "' y2='" + (H - 1) + "' stroke='#d0cab8'/>" +
-      "<polyline fill='none' stroke='" + color + "' stroke-width='1.5' points='" + pts.map((d) => x(d) + "," + y(d)).join(" ") + "'/><circle cx='" + x(end) + "' cy='" + y(end) + "' r='2' fill='" + color + "'/></svg>";
+  // what a count gained in each week: a bar a week across the whole study, on one scale, so the bars fill in as the clock runs
+  function weekBars(key, color) {
+    const W = 150, H = 20, D = S.daily, n = D.length, weeks = Math.floor(S.last / 7) + 1, bw = (W - 2) / weeks, ym = Math.max(1, S.weekMax[key] || 0);
+    let out = "<svg class='spark' viewBox='0 0 " + W + " " + H + "' role='img' aria-label='New each week'><line x1='0' y1='" + (H - 0.5) + "' x2='" + W + "' y2='" + (H - 0.5) + "' stroke='#d0cab8'/>";
+    if (n) for (let w = 0; w * 7 < n; w++) {
+      const end = D[Math.min(n - 1, w * 7 + 6)][key], start = w ? D[w * 7 - 1][key] : 0, gain = end - start; if (gain <= 0) continue;
+      const h = Math.max(1, (Math.min(gain, ym) / ym) * (H - 2)), partial = w * 7 + 6 > n - 1 && S.day <= S.last;
+      out += "<rect x='" + (1 + w * bw).toFixed(1) + "' y='" + (H - 1 - h).toFixed(1) + "' width='" + Math.max(1, bw - 0.8).toFixed(1) + "' height='" + h.toFixed(1) + "' fill='" + color + "'" + (partial ? " opacity='.5'" : "") + "><title>Week " + (w + 1) + ": " + gain + "</title></rect>";
+    }
+    return out + "</svg>";
   }
   function metrics() {
     const D = S.daily, now = D[D.length - 1], was = D[Math.max(0, D.length - 8)];
@@ -275,9 +275,9 @@
       ["visits", "Visits", "#5c7fb8", has("VISIT")], ["ae", "Adverse events", "#b8865c", has("AE")], ["sae", "Serious adverse events", "#b85c5c", has("AE")],
       ["pd", "Protocol deviations", "#b8865c", has("PD")], ["left", "Left the study", "#888", has("STUDCOMP")], ["stopped", "Stopped treatment", "#888", has("SDRGCOMP")]].filter((r) => r[3]);
     const over = S.day > S.last;
-    return "<h3>As the clock stands · " + (over ? "all data in, day " + S.last : "day " + now.day) + "</h3><table class='metrics'><tr><th>Count</th><th class='num'>To date</th><th class='num'>Last 7 days</th><th>Trend, first day to last</th></tr>" +
+    return "<h3>As the clock stands · " + (over ? "all data in, day " + S.last : "day " + now.day) + "</h3><table class='metrics'><tr><th>Count</th><th class='num'>To date</th><th class='num'>Last 7 days</th><th>New each week</th></tr>" +
       rows.map((r) => { const gain = over ? 0 : now[r[0]] - (D.length > 1 ? was[r[0]] : 0);
-        return "<tr><td>" + r[1] + (r[4] ? " <span class='soft'>" + esc(r[4]) + "</span>" : "") + "</td><td class='num'><b>" + now[r[0]].toLocaleString("en-GB") + "</b></td><td class='num'>" + (gain > 0 ? "+" + gain.toLocaleString("en-GB") : "<span class='soft'>0</span>") + "</td><td>" + spark(r[0], r[2]) + "</td></tr>"; }).join("") + "</table>";
+        return "<tr><td>" + r[1] + (r[4] ? " <span class='soft'>" + esc(r[4]) + "</span>" : "") + "</td><td class='num'><b>" + now[r[0]].toLocaleString("en-GB") + "</b></td><td class='num'>" + (gain > 0 ? "+" + gain.toLocaleString("en-GB") : "<span class='soft'>0</span>") + "</td><td>" + weekBars(r[0], r[2]) + "</td></tr>"; }).join("") + "</table>";
   }
 
   function pOver() {
