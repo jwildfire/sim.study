@@ -191,8 +191,9 @@
       catch (e) { note.textContent = String(e && e.message ? e.message : e); }
     };
     host.setAttribute("role", "listbox"); host.setAttribute("aria-label", "Studies to play");
-    listed.concat([MADE_UP]).forEach((entry) => {
-      const ready = !!entry.build || entry.id === PILOT || entry.id === MADE_UP.id, row = document.createElement("button");
+    const isReady = (entry) => !!entry.build || entry.id === PILOT || entry.id === MADE_UP.id, all = listed.concat([MADE_UP]);
+    all.filter(isReady).concat(all.filter((entry) => !isReady(entry))).forEach((entry) => {
+      const ready = isReady(entry), row = document.createElement("button");
       row.type = "button"; row.className = "prow" + (entry.id === now ? " on" : "") + (ready ? "" : " wait"); row.setAttribute("role", "option"); row.setAttribute("aria-selected", String(entry.id === now));
       const name = document.createElement("b"); name.textContent = entry.name;
       const facts = document.createElement("span"); facts.textContent = entry.line || SBL.factsLine(entry) || "";
