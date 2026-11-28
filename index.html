@@ -78,7 +78,7 @@
   button.prow b { font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } button.prow.on b { color:var(--navy); }
   button.prow span { grid-column:1 / -1; font-size:11px; color:#555; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   button.prow i { font-style:normal; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--good); font-weight:700; white-space:nowrap; }
-  button.prow.wait i { color:var(--lo); } button.prow.wait b { color:#555; font-weight:600; }
+  button.prow.wait i, button.prow.wait b, button.prow.wait span { color:#8d9096; } button.prow.wait b { font-weight:600; } button.prow.wait { background:#ebe8de; }
   .pick-note { margin:4px 5px 2px; font-size:11px; color:#444; } .pick-note:empty { display:none; }
   .chooser { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 12px; padding:0 0 12px; border-bottom:1px solid #ddd; font:13px/1.4 var(--mono); }
   .facts { display:flex; flex-wrap:wrap; gap:5px; margin:6px 0; } .facts span { background:#ece8db; border:1px solid #d0cab8; padding:2px 7px; font-size:11.5px; }
@@ -102,8 +102,7 @@
 <header id="bar" class="bevel ss">
   <h1 title="Sim Study">SIM STUDY</h1>
   <button id="info" aria-label="What is simstudy?" title="What is simstudy?">ⓘ</button>
-  <span class="lcd" id="date">Day 0</span>
-  <button id="play" class="primary" aria-label="Play or pause">▶ Play</button>
+  <button id="pick" aria-haspopup="true" aria-expanded="false" aria-controls="pickMenu" title="Choose a study from study.builder's portfolio, or the made-up trial">Study ▾</button>
   <button id="speedBtn" aria-expanded="false" aria-controls="timeMore" title="Speed and single steps">1 wk/s ▾</button>
   <span id="timeMore" hidden>
     <span role="group" aria-label="Speed">
@@ -111,11 +110,12 @@
     </span>
     <button id="stepBtn" title="Advance one day">+1 day</button>
   </span>
+  <button id="play" class="primary" aria-label="Play or pause">▶ Play</button>
   <label class="chk arcade" title="Send a monitor by itself when a site stays red for two weeks"><input type="checkbox" id="auto" checked> Autopilot</label>
-  <button id="pick" aria-haspopup="true" aria-expanded="false" aria-controls="pickMenu" title="Choose a study from study.builder's portfolio, or the made-up trial">Study ▾</button>
-  <span class="grow"></span>
-  <span class="lcd" id="money">$0.0M</span>
   <button id="fresh" class="arcade" title="Start again with a different made-up trial">New trial</button>
+  <span class="grow"></span>
+  <span class="lcd" id="date">Day 0</span>
+  <span class="lcd" id="money">$0.0M</span>
 </header>
 <div id="main">
   <div id="cityWrap">
