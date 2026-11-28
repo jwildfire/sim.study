@@ -1,6 +1,6 @@
 /* Sim Study: the clock, the city and the panels.
    Two engines give it a study: built.js plays one that study.builder built; sim.js makes one up.
-   One network call, for study.builder's list of ready-made studies and a study picked from it; no storage. */
+   One network call, for study.builder's list of ready-made studies and a study picked from it. One thing is stored in the browser: that the About panel has been seen. */
 (function () {
   "use strict";
   const $ = (id) => document.getElementById(id);
@@ -157,18 +157,20 @@
   function overlay(title, sub, cls) { closeViz(); playing = false; const body = $("vizBody"); body.className = cls || ""; $("viz").hidden = false; $("vizTitle").textContent = title; $("vizSub").textContent = sub; return body; }
 
   // The studies to play, a line each: study.builder's picker over its studies feed.
-  // Only a study with its data ready can be played, so settings and protocols are left out.
+  // Every study in the feed is listed. Only one with its data ready can be played; the others say so when picked.
   const PILOT = "preset:cdisc-pilot-protocol";
   const COPIED = { id: PILOT, kind: "settings", build: {}, name: "CDISC pilot protocol study", line: "Phase 2 · 120 participants · 12 sites · 7 months", mark: "Copied here" };
   const MADE_UP = { id: "sim:made-up", kind: "game", name: "Made-up trial", line: "Phase 3 · invented in this page · you can send monitors", mark: "Game" };
   async function openChooser() {
     const body = overlay("Choose a study", "Pick one to play it from day one", "sb");
-    const host = document.createElement("div"); host.className = "pick-host"; body.appendChild(host);
     const note = document.createElement("p"); note.className = "soft ss"; body.appendChild(note);
+    const host = document.createElement("div"); host.className = "pick-host"; body.appendChild(host);
     let listed = [];
-    try { listed = await window.StudyBuilder.listStudies(SB_BASE + "studies/index.json", { built: true }); }
+    try { listed = await window.StudyBuilder.listStudies(SB_BASE + "studies/index.json"); }
     catch (e) { note.textContent = "The rest of study.builder's studies need the network, and this page cannot reach it from here. These two work without it."; }
     if (!listed.some((one) => one.id === PILOT)) listed = [COPIED].concat(listed);
+    const waiting = listed.filter((one) => !one.build && one.id !== PILOT).length;
+    if (waiting) note.textContent = (listed.length - waiting) + " of study.builder's " + listed.length + " studies have their data ready and can be played. The other " + waiting + " are listed with their plan; they play here once study.builder has built them.";
     const now = mode === "arcade" ? MADE_UP.id : (S && S.cfg && S.cfg.listed) || PILOT;
     widget = window.StudyBuilder.mountPicker(host, {
       studies: listed.concat([MADE_UP]), picked: now, theme: "light", label: "Studies to play",
@@ -176,12 +178,35 @@
         if (entry.id === MADE_UP.id) return start("arcade");
         // The pilot is copied into this page: it opens with no fetch.
         if (entry.id === PILOT && canBuild) return start("built");
+        if (!entry.build) { note.textContent = entry.name + ": study.builder has this study's plan but has not built its data yet, so there is nothing to play. Pick one marked Data ready, or the made-up trial."; return; }
         note.textContent = "Fetching " + entry.name + "…";
         try { const got = await window.StudyBuilder.openListed(entry); start("built", null, got.study, entry.id); }
         catch (e) { note.textContent = String(e && e.message ? e.message : e); }
       }
     });
   }
+  // What the project is. Opens by itself on a first visit, and from the info button after that.
+  const SEEN = "simstudy.about.seen";
+  function openAbout() {
+    const body = overlay("About Sim Study", "A clinical trial you can play, pause and speed up", "sb about");
+    body.innerHTML =
+      "<p><b>Sim Study puts a clock on a simulated clinical trial.</b> Press Play and the study runs a day at a time: sites open, participants enrol, data arrives, risk reviews flag sites, the database locks and the analysis comes out. The sites are drawn as a small city around the sponsor's campus.</p>" +
+      "<h3>How to use it</h3><ul>" +
+      "<li><b>Play</b> starts and stops the clock. The button beside it sets the speed: a day, a week or a month a second.</li>" +
+      "<li><b>Study</b> lists the studies you can play.</li>" +
+      "<li><b>Click a site</b> in the city to follow it. Its roof is its risk colour.</li>" +
+      "<li><b>The tabs</b> on the right show the study as it stands today: the overview, the day's data, the week, safety, the road to submission and the report.</li></ul>" +
+      "<h3>What is real</h3><ul>" +
+      "<li>Every row is synthetic. A flag on a simulated site says nothing about any real one.</li>" +
+      "<li>It is a prototype. Nothing here is qualified, and nothing here is a submission.</li></ul>" +
+      "<h3>What it is built from</h3>" +
+      "<p>Sim Study is a thin layer over open source projects: <a href='https://github.com/jwildfire/study.builder' target='_blank' rel='noopener'>study.builder</a> builds each study, <a href='https://github.com/Gilead-Public/gsm.core' target='_blank' rel='noopener'>Good Statistical Monitoring</a> simulates the data and scores the sites, and <a href='https://github.com/jwildfire/safety.viz' target='_blank' rel='noopener'>safety.viz</a> and <a href='https://github.com/Gilead-Public/gsm.viz' target='_blank' rel='noopener'>gsm.viz</a> draw the charts. The code and the full list are on <a href='https://github.com/jwildfire/sim.study' target='_blank' rel='noopener'>GitHub</a>.</p>" +
+      "<p class='ss'><button id='aboutGo' class='primary'>Got it</button></p>";
+    $("aboutGo").addEventListener("click", closeViz);
+    try { localStorage.setItem(SEEN, "1"); } catch (e) { /* no storage here: the panel opens again next visit */ }
+  }
+  function firstVisit() { try { return !localStorage.getItem(SEEN); } catch (e) { return false; } }
+
   function openStudyView() {
     const body = overlay(S.cfg.id + " · study view", "study.builder " + window.StudyBuilder.version + " · the whole study, every layer and every snapshot · not limited to the clock's date", "sb");
     const host = document.createElement("div"); body.appendChild(host);
@@ -417,6 +442,7 @@
   $("play").addEventListener("click", () => { playing = !playing; if (playing) closeViz(); render(); });
   $("speedBtn").addEventListener("click", () => { const m = $("timeMore"); m.hidden = !m.hidden; $("speedBtn").setAttribute("aria-expanded", String(!m.hidden)); render(); });
   $("pick").addEventListener("click", openChooser);
+  $("info").addEventListener("click", openAbout);
   $("stepBtn").addEventListener("click", () => { playing = false; tick(); render(); });
   $("auto").addEventListener("change", (e) => { S.auto = e.target.checked; });
   $("fresh").addEventListener("click", () => start("arcade", 1 + Math.floor(Math.random() * 99999)));
@@ -435,6 +461,6 @@
   document.addEventListener("keydown", (e) => { if (e.code === "Space" && e.target.tagName !== "BUTTON" && e.target.tagName !== "INPUT") { e.preventDefault(); playing = !playing; render(); } });
   window.addEventListener("resize", () => { dirty = true; });
 
-  start(hash("study", "pilot") === "made-up" ? "arcade" : "built").then(() => requestAnimationFrame(frame));
-  window.__sim = { get S() { return S; }, tick, render, openViz, openChooser, openStudyView, start, set tab(v) { tab = v; }, set sel(v) { sel = v; } };
+  start(hash("study", "pilot") === "made-up" ? "arcade" : "built").then(() => { requestAnimationFrame(frame); if (firstVisit() && !/about=off/.test(location.hash)) openAbout(); });
+  window.__sim = { get S() { return S; }, tick, render, openViz, openChooser, openAbout, openStudyView, start, set tab(v) { tab = v; }, set sel(v) { sel = v; } };
 })();

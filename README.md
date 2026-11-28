@@ -16,8 +16,11 @@ submission.
 ## What it does
 
 - **A clock.** Play and pause; the speed button unfolds a day, a week or a month per second, and single days.
-- **A list of studies to pick from.** The Study button lists study.builder's ready-made studies, a line
-  each, and the made-up trial. Pick one and it plays from day one. The list is study.builder's studies
+- **An About panel.** The ⓘ button says what the project is. It opens by itself on a first visit; the
+  browser remembers that it has been seen, and nothing else is stored.
+- **A list of studies to pick from.** The Study button lists every study in study.builder's feed, a line
+  each, and the made-up trial. Pick one marked Data ready and it plays from day one; the others are
+  listed with their plan and play once study.builder has built them. The list is study.builder's studies
   feed, drawn by its picker; a study file is checked against the feed's checksum before it opens.
 - **A study overview.** study.builder's facts and counts for the study as the clock stands, and its full
   study view (every layer, table and participant) one press away.
