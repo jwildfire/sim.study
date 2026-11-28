@@ -22,17 +22,20 @@ submission.
   each, and the made-up trial. The list drops down from the bar. Pick one marked Data ready and it plays from day one; the others are
   listed with their plan and play once study.builder has built them. The list is study.builder's studies
   feed, drawn here in this page's own style; a study file is checked against the feed's checksum before it opens.
-- **A study overview.** A table of counts that moves with the clock (screened, enrolled, sites open, visits,
+- **Departments.** The sections on the right are the buildings in the city: HQ, Data hub, Data cleaning,
+  Monitoring, Safety, Statistics and Regulatory. Click a building or its tab; a tab's square lights when that
+  department has work.
+- **HQ: a study overview.** A table of counts that moves with the clock (screened, enrolled, sites open, visits,
   adverse events, deviations, who left), each with a bar for what it gained in every week; then
   study.builder's facts for the study, and its full study view (every layer, table and participant) one press away.
-- **Daily raw data cuts.** The rows of each raw table that are dated today, and to date.
-- **Weekly operational snapshots.** Enrolment against plan, screening and discontinuations.
-- **Risk-based quality monitoring.** Each month's review of every site on eight metrics, with
+- **Data hub: daily raw data cuts.** The rows of each raw table that are dated today, and to date.
+- **Monitoring: weekly operational snapshots.** Enrolment against plan, screening and discontinuations.
+- **Monitoring: risk-based quality monitoring.** Each month's review of every site on eight metrics, with
   amber and red flags. A site's roof in the city is its risk colour.
-- **Safety review.** Adverse events as they arrive, pooled and blinded until the database locks.
-- **Lock and analysis.** Treatment codes are released, and adverse events and efficacy come out
+- **Safety: the review.** Adverse events as they arrive, pooled and blinded until the database locks.
+- **Statistics: lock and analysis.** Treatment codes are released, and adverse events and efficacy come out
   by arm.
-- **A road to submission.** A checklist of what a submission needs, showing what is built and
+- **Regulatory: a road to submission.** A checklist of what a submission needs, showing what is built and
   what is not.
 
 ## Which study
@@ -94,7 +97,7 @@ Sim Study is a thin layer. The work is done by the projects below.
   larger than it should be.
 - The study file holds seven months of a longer study. The analysis is of what was there at
   the last snapshot, so late visits have few participants.
-- The rows marked ✗ on the Submission tab are real gaps. There is no SDTM, no tables package
+- The rows marked ✗ in Regulatory are real gaps. There is no SDTM, no tables package
   and no study report.
 - The made-up trial is a game. Its datasets and report are ticked off on a timer.
 
