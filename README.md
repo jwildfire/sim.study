@@ -8,9 +8,11 @@ the analysis comes out. It is drawn as a small city, with the sites around a spo
 
 **▶ Try it: <https://jwildfire.github.io/sim.study/>**
 
-![Sim Study: the pilot study in its fourth month, with study.builder's overview beside the city](docs/sim-study.jpg)
+![Sim Study playing the CDISC pilot study from first site to analysis, with Orange the cat captioning each department: Data hub, HQ, Monitoring, Safety, Regulatory and Statistics](docs/sim-study-demo.gif)
 
-Status: v0.2.0, a prototype. Every row is synthetic. Nothing here is qualified, and nothing here is a
+*Orange shows you round: 44 seconds from the first site opening to the results by arm. Orange was Jeremy's cat, and the stickers are from his [R/Pharma 2026 keynote](https://jwildfire.github.io/keynote/). The clip is recorded from the page itself by [`docs/demo/record.mjs`](docs/demo/record.mjs); only the cursor, the orange rings and the captions are drawn over it.*
+
+Status: v0.3.0, a prototype. Every row is synthetic. Nothing here is qualified, and nothing here is a
 submission.
 
 ## What it does
