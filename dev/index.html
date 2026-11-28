@@ -66,7 +66,10 @@
   #vizBody.sb { font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; color:#15171a; }
   #info { padding:5px 8px; font-size:14px; margin-left:-6px; }
   #vizBody.about { max-width:700px; } #vizBody.about h3 { margin:1.1rem 0 .3rem; font:700 12px/1.3 var(--mono); text-transform:uppercase; letter-spacing:.06em; color:#444; }
-  #vizBody.about ul { margin:.2rem 0; padding-left:1.2rem; } #vizBody.about li { margin:.25rem 0; } #vizBody.about a { color:var(--navy); }
+  #vizBody.about .lead { font-size:1.25rem; font-weight:700; margin:0 0 .5rem; } #vizBody.about a { color:var(--navy); }
+  .cando { list-style:none; margin:.5rem 0 .9rem; padding:0; } .cando li { display:flex; gap:.6rem; margin:.3rem 0; }
+  .cando i { font-style:normal; font-weight:700; width:1.1rem; text-align:center; flex:none; } .cando .yes i { color:var(--good); } .cando .no i { color:var(--bad); } .cando .no { color:#555; }
+  .sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
   .pick-host { max-width:640px; margin:0 0 10px; }
   .chooser { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 12px; padding:0 0 12px; border-bottom:1px solid #ddd; font:13px/1.4 var(--mono); }
   .facts { display:flex; flex-wrap:wrap; gap:5px; margin:6px 0; } .facts span { background:#ece8db; border:1px solid #d0cab8; padding:2px 7px; font-size:11.5px; }
@@ -89,7 +92,7 @@
 <body>
 <header id="bar" class="bevel ss">
   <h1 title="Sim Study">SIM STUDY</h1>
-  <button id="info" aria-label="About Sim Study" title="What is Sim Study?">ⓘ</button>
+  <button id="info" aria-label="What is simstudy?" title="What is simstudy?">ⓘ</button>
   <span class="lcd" id="date">Day 0</span>
   <button id="play" class="primary" aria-label="Play or pause">▶ Play</button>
   <button id="speedBtn" aria-expanded="false" aria-controls="timeMore" title="Speed and single steps">1 wk/s ▾</button>
