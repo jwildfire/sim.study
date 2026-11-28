@@ -8,27 +8,36 @@ the analysis comes out. It is drawn as a small city, with the sites around a spo
 
 **▶ Try it: <https://jwildfire.github.io/sim.study/>**
 
-![Sim Study: the pilot study in its fourth month, with study.builder's overview beside the city](docs/sim-study.jpg)
+![Sim Study playing the CDISC pilot study from first site to analysis, with Orange the cat captioning each department: Data hub, HQ, Monitoring, Safety, Regulatory and Statistics](docs/sim-study-demo.gif)
 
-Status: v0.2.0, a prototype. Every row is synthetic. Nothing here is qualified, and nothing here is a
+*Orange shows you round: 44 seconds from the first site opening to the results by arm. The stickers of Orange the cat are from Jeremy Wildfire's [R/Pharma 2026 keynote](https://jwildfire.github.io/keynote/). The clip is recorded from the page itself by [`docs/demo/record.mjs`](docs/demo/record.mjs); only the cursor, the orange rings and the captions are drawn over it.*
+
+Status: v0.3.0, a prototype. Every row is synthetic. Nothing here is qualified, and nothing here is a
 submission.
 
 ## What it does
 
 - **A clock.** Play and pause; the speed button unfolds a day, a week or a month per second, and single days.
-- **A list of studies to pick from.** The Study button lists study.builder's ready-made studies, a line
-  each, and the made-up trial. Pick one and it plays from day one. The list is study.builder's studies
-  feed, drawn by its picker; a study file is checked against the feed's checksum before it opens.
-- **A study overview.** study.builder's facts and counts for the study as the clock stands, and its full
-  study view (every layer, table and participant) one press away.
-- **Daily raw data cuts.** The rows of each raw table that are dated today, and to date.
-- **Weekly operational snapshots.** Enrolment against plan, screening and discontinuations.
-- **Risk-based quality monitoring.** Each month's review of every site on eight metrics, with
+- **A "What is simstudy?" panel.** The ⓘ button says what the project is and what it can and cannot do yet. It opens by itself on a first visit; the
+  browser remembers that it has been seen, and nothing else is stored.
+- **A list of studies to pick from.** The Study button lists every study in study.builder's feed, a line
+  each, and the made-up trial. The list drops down from the bar. Pick one marked Data ready and it plays from day one; the others are
+  listed with their plan and play once study.builder has built them. The list is study.builder's studies
+  feed, drawn here in this page's own style; a study file is checked against the feed's checksum before it opens.
+- **Departments.** The sections on the right are the buildings in the city: HQ, Data hub, Data cleaning,
+  Monitoring, Safety, Statistics and Regulatory. Click a building or its tab; a tab's square lights when that
+  department has work.
+- **HQ: a study overview.** A table of counts that moves with the clock (screened, enrolled, sites open, visits,
+  adverse events, deviations, who left), each with a bar for what it gained in every week; then
+  study.builder's facts for the study, and its full study view (every layer, table and participant) one press away.
+- **Data hub: daily raw data cuts.** The rows of each raw table that are dated today, and to date.
+- **Monitoring: weekly operational snapshots.** Enrolment against plan, screening and discontinuations.
+- **Monitoring: risk-based quality monitoring.** Each month's review of every site on eight metrics, with
   amber and red flags. A site's roof in the city is its risk colour.
-- **Safety review.** Adverse events as they arrive, pooled and blinded until the database locks.
-- **Lock and analysis.** Treatment codes are released, and adverse events and efficacy come out
+- **Safety: the review.** Adverse events as they arrive, pooled and blinded until the database locks.
+- **Statistics: lock and analysis.** Treatment codes are released, and adverse events and efficacy come out
   by arm.
-- **A road to submission.** A checklist of what a submission needs, showing what is built and
+- **Regulatory: a road to submission.** A checklist of what a submission needs, showing what is built and
   what is not.
 
 ## Which study
@@ -56,7 +65,7 @@ Sim Study is a thin layer. The work is done by the projects below.
 
 | Block | What it does here | Whose |
 |---|---|---|
-| [study.builder](https://github.com/jwildfire/study.builder) 0.5.0 | Builds the study in layers (raw, mapped, ADaM, analysis, reporting) with a snapshot for every month. Sim Study reads its studies feed, mounts its picker and study view, reads its overview, and asks a study for itself as it stood on any date | Jeremy Wildfire |
+| [study.builder](https://github.com/jwildfire/study.builder) 0.5.0 | Builds the study in layers (raw, mapped, ADaM, analysis, reporting) with a snapshot for every month. Sim Study reads its studies feed, mounts its study view, reads its overview, and asks a study for itself as it stood on any date | Jeremy Wildfire |
 | [safety.viz](https://github.com/jwildfire/safety.viz) 1.12.0 | The safety charts: Adverse Event Explorer, Adverse Event Timelines, Hepatic Safety Explorer, Results Over Time, Safety Histogram | Jeremy Wildfire; an update of the [safetyGraphics](https://github.com/SafetyGraphics/safetyGraphics) renderers |
 | [gsm.datasim](https://github.com/Gilead-Public/gsm.datasim) 2.1.0 | Simulates every raw row, month by month | Gilead Sciences |
 | [gsm.mapping](https://github.com/Gilead-Public/gsm.mapping), [gsm.kri](https://github.com/Gilead-Public/gsm.kri), [gsm.reporting](https://github.com/Gilead-Public/gsm.reporting), [gsm.core](https://github.com/Gilead-Public/gsm.core) | Good Statistical Monitoring: map the raw data, score each site on eight metrics, and shape the results for charts | Gilead Sciences |
@@ -90,7 +99,7 @@ Sim Study is a thin layer. The work is done by the projects below.
   larger than it should be.
 - The study file holds seven months of a longer study. The analysis is of what was there at
   the last snapshot, so late visits have few participants.
-- The rows marked ✗ on the Submission tab are real gaps. There is no SDTM, no tables package
+- The rows marked ✗ in Regulatory are real gaps. There is no SDTM, no tables package
   and no study report.
 - The made-up trial is a game. Its datasets and report are ticked off on a timer.
 

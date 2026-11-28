@@ -85,6 +85,17 @@
       });
     });
     S.hasQueries = has("raw", "QUERY");
+    // the most any count gains in one week of the file, so the weekly bars keep one scale as the clock runs
+    S.weekMax = {};
+    { const wk = [], add = (d, k, n) => { const w = Math.floor(d / 7); wk[w] = wk[w] || {}; wk[w][k] = (wk[w][k] || 0) + n; };
+      days.forEach((d, i) => {
+        add(i, "visits", d.n.VISIT || 0); add(i, "left", d.n.STUDCOMP || 0); add(i, "stopped", d.n.SDRGCOMP || 0);
+        d.ev.forEach((e) => { if (e[0] === "enroll") { add(i, "screened", 1); if (e[2]) add(i, "enrolled", 1); } if (e[0] === "ae") { add(i, "ae", 1); if (e[2].ser) add(i, "sae", 1); } if (e[0] === "pd") add(i, "pd", 1); });
+      });
+      S.sites.forEach((x) => add(Math.min(x.actDay, last), "sites", 1));
+      // rows dated after the file's last day are counted on that day, so the last week is left out of the scale and its bar is cut at the top
+      wk.forEach((w, i) => { if (i === wk.length - 1 && wk.length > 2) return; Object.keys(w || {}).forEach((k) => { S.weekMax[k] = Math.max(S.weekMax[k] || 0, w[k]); }); }); }
+    S.daily = [];
     const lastEnroll = days.reduce((a, d, i) => (d.ev.some((e) => e[0] === "enroll" && e[2]) ? i : a), 0);
     const history = (study.history || []).filter((h) => !h.problem).map((h) => ({ date: h.date, number: h.number, day: D(h.date) }));
     const lockDay = Math.max(D(STUDY.db_lock_dt) || 0, last + 7);
@@ -163,6 +174,9 @@
         if (e[0] === "pd") { s.pdN++; cut.pd++; }
         if (e[0] === "comp") { s.on = Math.max(0, s.on - 1); if (e[2]) s.completed++; else s.dropped++; }
       });
+      // the counts as the clock stands today: every one is rows of the study dated up to now
+      if (d <= last) S.daily.push({ day: d, screened: S.nScreened, enrolled: S.nRand, sites: S.sites.filter((x) => x.active).length, ae: S.aes.length, sae: S.aes.filter((x) => x.ser).length,
+        pd: S.sites.reduce((n, x) => n + x.pdN, 0), visits: S.total.VISIT || 0, left: S.total.STUDCOMP || 0, stopped: S.total.SDRGCOMP || 0 });
       S.pending = d <= last ? cut.n : 0;
       if (d <= lockDay) {
         S.cuts.push(cut); deliv("cuts").count++;

@@ -1,6 +1,6 @@
 /* Sim Study: the clock, the city and the panels.
    Two engines give it a study: built.js plays one that study.builder built; sim.js makes one up.
-   One network call, for study.builder's list of ready-made studies and a study picked from it; no storage. */
+   One network call, for study.builder's list of ready-made studies and a study picked from it. One thing is stored in the browser: that the About panel has been seen. */
 (function () {
   "use strict";
   const $ = (id) => document.getElementById(id);
@@ -9,7 +9,8 @@
   const canBuild = !!(window.StudyBuilder && window.SIM_STUDY_FILE && window.DecompressionStream);
 
   let S, mode = "arcade", opened = null, speed = 7, playing = false, acc = 0, sel = null, tab = "over", vans = [], widget = null, lastT = 0, dirty = true, lastRender = 0, newsN = -1;
-  const TABS = [["over", "Overview"], ["today", "Daily cut"], ["week", "Weekly"], ["safety", "Safety"], ["sub", "Submission"], ["csr", "Report"]];
+  // a tab a department, each named for its building in the city: [tab, name, building]
+  const TABS = [["over", "HQ", "hq"], ["today", "Data hub", "hub"], ["clean", "Data cleaning", "dm"], ["week", "Monitoring", "rbqm"], ["safety", "Safety", "safety"], ["csr", "Statistics", "stats"], ["sub", "Regulatory", "reg"]];
   const FORMS = [["DM", "Demographics"], ["VS", "Vital signs"], ["LB", "Laboratory"], ["EX", "Dosing"], ["AE", "Adverse events"], ["DS", "Disposition"], ["DV", "Protocol deviations"]];
   const ARMC = ["#888888", "#d0661f", "#1f3a6e", "#4f9c94", "#8a6bb0"];
   const VIZ = [["aeExplorer", "ADAE", "Adverse Event Explorer"], ["aeTimelines", "ADAE", "Adverse Event Timelines"], ["hepExplorer", "ADLB", "Hepatic Safety Explorer"], ["resultsOverTime", "ADLB", "Results Over Time"], ["histogram", "ADLB", "Safety Histogram"]];
@@ -26,6 +27,7 @@
   // ---------- the city ----------
   const G = 18, RING = [[2, 2], [6, 1], [11, 1], [15, 2], [16, 6], [16, 11], [15, 15], [11, 16], [6, 16], [2, 15], [1, 11], [1, 6]];
   const CAMPUS = [
+    { k: "hq", name: "HQ", x: 9.05, y: 9.8, w: 1.15, d: 1.1, h: 36, col: "#3d4a5c" },
     { k: "hub", name: "Data hub", x: 8.25, y: 7.75, w: 1.5, d: 1.5, h: 64, col: "#5c7fb8" },
     { k: "dm", name: "Data cleaning", x: 6.4, y: 7.2, w: 1.2, d: 1.2, h: 24, col: "#b8865c" },
     { k: "rbqm", name: "Monitoring", x: 6.4, y: 9.3, w: 1.2, d: 1.2, h: 40, col: "#8a6bb0" },
@@ -88,8 +90,9 @@
   }
   function campusOn(k) {
     const ph = S.phase, running = ph === "enrolling" || ph === "treatment" || ph === "cleaning";
+    if (k === "hq") return true;
     if (k === "hub") return ph !== "start-up";
-    if (k === "dm") return running && (S.openQ > 0 || S.pending > 0);
+    if (k === "dm") return running && (built() ? S.forms.some(([f]) => /^(QUERY|DATAENT|DATACHG)$/.test(f)) : S.openQ > 0 || S.pending > 0);
     if (k === "rbqm") return running && (built() ? !!S.gsm : S.snapshots.length > 0);
     if (k === "safety") return running && S.aes.length > 0;
     if (k === "stats") return ph === "analysis" || ph === "reporting" || S.done;
@@ -114,7 +117,9 @@
       if (b.k === "hub") { const top = P(b.x + b.w / 2, b.y + b.d / 2, h); c.strokeStyle = "#222"; c.lineWidth = 2; c.beginPath(); c.moveTo(top[0], top[1]); c.lineTo(top[0], top[1] - TW * 0.5); c.stroke(); if (on && Math.floor(t / 500) % 2) { c.fillStyle = "#ff4b3e"; c.beginPath(); c.arc(top[0], top[1] - TW * 0.5, 2.5, 0, 7); c.fill(); } }
       let text = b.name;
       if (b.k === "dm" && S.openQ) text += " · " + S.openQ + " open";
-      labels.push([P(b.x + b.w / 2, b.y + b.d / 2, h + TW * 0.12), text, on ? "rgba(31,58,110,.9)" : "rgba(60,62,66,.75)"]);
+      const open = TABS.some((x) => x[0] === tab && x[2] === b.k);
+      b.at = P(b.x + b.w / 2, b.y + b.d / 2, h / 2); b.reach = Math.max(TW * 0.75, h * 0.6);
+      labels.push([P(b.x + b.w / 2, b.y + b.d / 2, h + TW * 0.12), text, open ? "#fff" : on ? "rgba(31,58,110,.9)" : "rgba(60,62,66,.75)", open ? "#15171a" : null]);
     } }));
     S.sites.forEach((s, i) => { if (!SPOT[i]) return; const [sx, sy] = SPOT[i]; list.push({ z: sx + sy + 1, f: () => {
       if (sel === i) { c.lineWidth = 3; poly([P(sx, sy), P(sx + 1, sy), P(sx + 1, sy + 1), P(sx, sy + 1)], "rgba(255,255,255,.25)", "#fff"); }
@@ -157,31 +162,72 @@
   function overlay(title, sub, cls) { closeViz(); playing = false; const body = $("vizBody"); body.className = cls || ""; $("viz").hidden = false; $("vizTitle").textContent = title; $("vizSub").textContent = sub; return body; }
 
   // The studies to play, a line each: study.builder's picker over its studies feed.
-  // Only a study with its data ready can be played, so settings and protocols are left out.
+  // Every study in the feed is listed. Only one with its data ready can be played; the others say so when picked.
   const PILOT = "preset:cdisc-pilot-protocol";
   const COPIED = { id: PILOT, kind: "settings", build: {}, name: "CDISC pilot protocol study", line: "Phase 2 · 120 participants · 12 sites · 7 months", mark: "Copied here" };
   const MADE_UP = { id: "sim:made-up", kind: "game", name: "Made-up trial", line: "Phase 3 · invented in this page · you can send monitors", mark: "Game" };
+  // The list drops down from the Study button in the bar. The clock keeps its state while it is open.
+  function closeChooser() { const m = $("pickMenu"); m.hidden = true; m.textContent = ""; $("pick").setAttribute("aria-expanded", "false"); }
   async function openChooser() {
-    const body = overlay("Choose a study", "Pick one to play it from day one", "sb");
-    const host = document.createElement("div"); host.className = "pick-host"; body.appendChild(host);
-    const note = document.createElement("p"); note.className = "soft ss"; body.appendChild(note);
+    const menu = $("pickMenu"), btn = $("pick");
+    if (!menu.hidden) return closeChooser();
+    const at = btn.getBoundingClientRect(), wide = Math.min(400, window.innerWidth - 16);
+    menu.style.width = wide + "px"; menu.style.top = Math.round(at.bottom + 2) + "px"; menu.style.left = Math.max(8, Math.min(at.left, window.innerWidth - wide - 8)) + "px";
+    menu.style.maxHeight = Math.max(160, window.innerHeight - at.bottom - 14) + "px";
+    menu.textContent = ""; menu.hidden = false; btn.setAttribute("aria-expanded", "true");
+    const host = document.createElement("div"); host.className = "pick-host"; menu.appendChild(host);
+    const note = document.createElement("p"); note.className = "pick-note"; note.setAttribute("aria-live", "polite"); menu.appendChild(note);
     let listed = [];
-    try { listed = await window.StudyBuilder.listStudies(SB_BASE + "studies/index.json", { built: true }); }
+    try { listed = await window.StudyBuilder.listStudies(SB_BASE + "studies/index.json"); }
     catch (e) { note.textContent = "The rest of study.builder's studies need the network, and this page cannot reach it from here. These two work without it."; }
+    if (menu.hidden) return;
     if (!listed.some((one) => one.id === PILOT)) listed = [COPIED].concat(listed);
+    const waiting = listed.filter((one) => !one.build && one.id !== PILOT).length;
+    if (waiting) note.textContent = waiting + " not built yet. They play here once study.builder has built them.";
     const now = mode === "arcade" ? MADE_UP.id : (S && S.cfg && S.cfg.listed) || PILOT;
-    widget = window.StudyBuilder.mountPicker(host, {
-      studies: listed.concat([MADE_UP]), picked: now, theme: "light", label: "Studies to play",
-      onPick: async (entry) => {
-        if (entry.id === MADE_UP.id) return start("arcade");
-        // The pilot is copied into this page: it opens with no fetch.
-        if (entry.id === PILOT && canBuild) return start("built");
-        note.textContent = "Fetching " + entry.name + "…";
-        try { const got = await window.StudyBuilder.openListed(entry); start("built", null, got.study, entry.id); }
-        catch (e) { note.textContent = String(e && e.message ? e.message : e); }
-      }
+    // study.builder gives the list, each study's facts line and its mark; the rows are drawn here, in this page's style.
+    const SBL = window.StudyBuilder, pick = async (entry) => {
+      if (entry.id === MADE_UP.id) { closeChooser(); return start("arcade"); }
+      // The pilot is copied into this page: it opens with no fetch.
+      if (entry.id === PILOT && canBuild) { closeChooser(); return start("built"); }
+      if (!entry.build) { note.textContent = entry.name + ": no data built yet, so there is nothing to play."; return; }
+      note.textContent = "Fetching " + entry.name + "…";
+      try { const got = await SBL.openListed(entry); closeChooser(); closeViz(); start("built", null, got.study, entry.id); }
+      catch (e) { note.textContent = String(e && e.message ? e.message : e); }
+    };
+    host.setAttribute("role", "listbox"); host.setAttribute("aria-label", "Studies to play");
+    const isReady = (entry) => !!entry.build || entry.id === PILOT || entry.id === MADE_UP.id, all = listed.concat([MADE_UP]);
+    all.filter(isReady).concat(all.filter((entry) => !isReady(entry))).forEach((entry) => {
+      const ready = isReady(entry), row = document.createElement("button");
+      row.type = "button"; row.className = "prow" + (entry.id === now ? " on" : "") + (ready ? "" : " wait"); row.setAttribute("role", "option"); row.setAttribute("aria-selected", String(entry.id === now));
+      const name = document.createElement("b"); name.textContent = entry.name;
+      const facts = document.createElement("span"); facts.textContent = entry.line || SBL.factsLine(entry) || "";
+      const mark = document.createElement("i"); mark.textContent = entry.id === MADE_UP.id ? "Game" : ready ? "Ready" : "Not built";
+      row.title = entry.name; row.append(name, mark, facts); row.addEventListener("click", () => pick(entry)); host.appendChild(row);
     });
+    const first = host.querySelector(".on") || host.firstChild; if (first) first.focus();
   }
+  document.addEventListener("click", (e) => { const m = $("pickMenu"); if (!m.hidden && !m.contains(e.target) && !$("pick").contains(e.target)) closeChooser(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("pickMenu").hidden) { closeChooser(); $("pick").focus(); } });
+  window.addEventListener("resize", () => { if (!$("pickMenu").hidden) closeChooser(); });
+  // What the project is. Opens by itself on a first visit, and from the info button after that.
+  const SEEN = "simstudy.about.seen";
+  function openAbout() {
+    const body = overlay("What is simstudy?", "An end-to-end clinical trial simulator", "sb about");
+    const can = ["Run a study on a clock: sites open, participants enrol, data arrives", "Cut the raw data every day and take an operational snapshot every week", "Review every site's risk each month, with amber and red flags", "Review safety blinded, then lock the database and analyse by arm", "Draw the charts with safety.viz and gsm.viz", "Play any study that study.builder has built"];
+    const cannot = ["Open and close data queries", "Make SDTM datasets and define.xml", "Make submission-grade tables, listings and figures", "Write the clinical study report"];
+    const row = (ok) => (t) => "<li class='" + (ok ? "yes" : "no") + "'><i aria-hidden='true'>" + (ok ? "✓" : "✗") + "</i><span>" + (ok ? "" : "<span class='sr'>Not yet: </span>") + t + "</span></li>";
+    body.innerHTML =
+      "<p class='lead'>It's an end-to-end clinical trial simulator!</p>" +
+      "<p>simstudy uses open source tools to simulate clinical trials. It's still an experiment, but right now it can:</p>" +
+      "<ul class='cando'>" + can.map(row(true)).join("") + cannot.map(row(false)).join("") + "</ul>" +
+      "<p>Click the \"play\" button to see it in action or see the <a href='https://github.com/jwildfire/sim.study#readme' target='_blank' rel='noopener'>readme</a> for more info!</p>" +
+      "<p class='ss'><button id='aboutGo' class='primary'>▶ Play</button> <span class='soft'>Every row is synthetic.</span></p>";
+    $("aboutGo").addEventListener("click", () => { closeViz(); playing = true; render(); });
+    try { localStorage.setItem(SEEN, "1"); } catch (e) { /* no storage here: the panel opens again next visit */ }
+  }
+  function firstVisit() { try { return !localStorage.getItem(SEEN); } catch (e) { return false; } }
+
   function openStudyView() {
     const body = overlay(S.cfg.id + " · study view", "study.builder " + window.StudyBuilder.version + " · the whole study, every layer and every snapshot · not limited to the clock's date", "sb");
     const host = document.createElement("div"); body.appendChild(host);
@@ -215,26 +261,50 @@
     return (withQ ? cv("cq", (el) => chart(el, { xmax: xm, ymax: Math.max(10, ...S.cuts.map((x) => x.open)) * 1.1, xl: weekTicks(xm), series: [{ name: "open queries", color: "#b8865c", pts: S.cuts.map((x) => [x.day, x.open]) }] })) : "") +
       cv("cn", (el) => chart(el, { xmax: xm, ymax: Math.max(10, ...S.cuts.map((x) => x.n)) * 1.1, xl: weekTicks(xm), series: [{ name: "records per day", color: "#5c7fb8", bars: true, pts: S.cuts.map((x) => [x.day, x.n]) }] })); };
 
+  // what a count gained in each week: a bar a week across the whole study, on one scale, so the bars fill in as the clock runs
+  function weekBars(key, color) {
+    const W = 150, H = 20, D = S.daily, n = D.length, weeks = Math.floor(S.last / 7) + 1, bw = (W - 2) / weeks, ym = Math.max(1, S.weekMax[key] || 0);
+    let out = "<svg class='spark' viewBox='0 0 " + W + " " + H + "' role='img' aria-label='New each week'><line x1='0' y1='" + (H - 0.5) + "' x2='" + W + "' y2='" + (H - 0.5) + "' stroke='#d0cab8'/>";
+    if (n) for (let w = 0; w * 7 < n; w++) {
+      const end = D[Math.min(n - 1, w * 7 + 6)][key], start = w ? D[w * 7 - 1][key] : 0, gain = end - start; if (gain <= 0) continue;
+      const h = Math.max(1, (Math.min(gain, ym) / ym) * (H - 2)), partial = w * 7 + 6 > n - 1 && S.day <= S.last;
+      out += "<rect x='" + (1 + w * bw).toFixed(1) + "' y='" + (H - 1 - h).toFixed(1) + "' width='" + Math.max(1, bw - 0.8).toFixed(1) + "' height='" + h.toFixed(1) + "' fill='" + color + "'" + (partial ? " opacity='.5'" : "") + "><title>Week " + (w + 1) + ": " + gain + "</title></rect>";
+    }
+    return out + "</svg>";
+  }
+  function metrics() {
+    const D = S.daily, now = D[D.length - 1], was = D[Math.max(0, D.length - 8)];
+    if (!now) return "<h3>As the clock stands</h3><p class='soft'>Press Play. The counts start with the first day's data.</p>";
+    const has = (id) => S.forms.some((f) => f[0] === id);
+    const rows = [["screened", "Participants screened", "#5c7fb8", true], ["enrolled", "Enrolled", "#5c7fb8", true, "of " + S.cfg.target + " planned"], ["sites", "Sites open", "#6a8f5c", true, "of " + S.sites.length],
+      ["visits", "Visits", "#5c7fb8", has("VISIT")], ["ae", "Adverse events", "#b8865c", has("AE")], ["sae", "Serious adverse events", "#b85c5c", has("AE")],
+      ["pd", "Protocol deviations", "#b8865c", has("PD")], ["left", "Left the study", "#888", has("STUDCOMP")], ["stopped", "Stopped treatment", "#888", has("SDRGCOMP")]].filter((r) => r[3]);
+    const over = S.day > S.last;
+    return "<h3>As the clock stands · " + (over ? "all data in, day " + S.last : "day " + now.day) + "</h3><table class='metrics'><tr><th>Count</th><th class='num'>To date</th><th class='num'>Last 7 days</th><th>New each week</th></tr>" +
+      rows.map((r) => { const gain = over ? 0 : now[r[0]] - (D.length > 1 ? was[r[0]] : 0);
+        return "<tr><td>" + r[1] + (r[4] ? " <span class='soft'>" + esc(r[4]) + "</span>" : "") + "</td><td class='num'><b>" + now[r[0]].toLocaleString("en-GB") + "</b></td><td class='num'>" + (gain > 0 ? "+" + gain.toLocaleString("en-GB") : "<span class='soft'>0</span>") + "</td><td>" + weekBars(r[0], r[2]) + "</td></tr>"; }).join("") + "</table>";
+  }
+
   function pOver() {
     if (!built()) {
       const C = S.cfg;
       return "<h2>" + esc(C.id) + " · made-up trial</h2><p>" + esc(C.title) + ".</p><div class='facts'><span>Phase 3</span><span>" + C.target + " patients</span><span>" + S.sites.length + " sites</span><span>2 arms</span><span>Seed " + S.seed + "</span></div>" +
         "<p><b>Primary endpoint.</b> " + esc(C.primary) + ".</p><h3>Visits</h3><table>" + S.visits.map((v) => "<tr><td>" + v.n + "</td><td>day " + v.d + "</td></tr>").join("") + "</table>" +
-        "<div class='note'>Invented in this page. Three sites have a hidden problem: watch the Weekly tab, pick a site and send a monitor. Press <b>Study</b> to play a study from study.builder instead.</div>";
+        "<div class='note'>Invented in this page. Three sites have a hidden problem: watch Monitoring, pick a site and send a monitor. Press <b>Study</b> to play a study from study.builder instead.</div>";
     }
     const snap = S.asOf(), O = window.StudyBuilder.overviewOf(snap || S.study), W = window.StudyBuilder.overviewOf(S.study);
     let h = "<h2>" + esc(O.id) + (S.cfg.nick ? " · " + esc(S.cfg.nick) : "") + "</h2><p>" + esc(S.cfg.title) + "</p>";
     h += "<div class='facts'>" + W.facts.filter((f) => !/^(Study|Snapshot|Status)$/.test(f.label)).map((f) => "<span>" + esc(f.label) + ": " + esc(f.value) + "</span>").join("") + "<span>" + S.cfg.target + " planned</span><span>" + S.arms.length + " arms</span></div>";
     h += "<p><button data-view='study'>Open the full study view</button></p>";
+    h += metrics();
     if (snap) {
-      h += "<h3>As of " + esc(S.gsm.date) + " · snapshot " + S.gsm.number + "</h3><div class='stats'>" + O.counts.slice(0, 8).map((c) => stat(esc(c.value), esc(c.label) + (c.note ? " · " + esc(c.note) : ""))).join("") + "</div>";
-      h += "<h3>By country</h3><table><tr><th>Country</th><th>Sites</th><th>Participants</th></tr>" + O.countries.map((c) => "<tr><td>" + esc(c.country) + "</td><td>" + c.sites + "</td><td>" + c.participants + "</td></tr>").join("") + "</table>";
-    } else h += "<h3>As the clock stands</h3><p class='soft'>Press Play. study.builder's counts appear at the first month's snapshot.</p>";
+      h += "<h3>By country · as of " + esc(S.gsm.date) + ", snapshot " + S.gsm.number + "</h3><table><tr><th>Country</th><th>Sites</th><th>Participants</th></tr>" + O.countries.map((c) => "<tr><td>" + esc(c.country) + "</td><td>" + c.sites + "</td><td>" + c.participants + "</td></tr>").join("") + "</table>";
+    }
     if (S.arms.length) h += "<h3>Arms</h3><p>" + S.arms.map(esc).join(" · ") + (S.unblinded ? "" : " <span class='soft'>(blinded in the safety review until lock)</span>") + "</p>";
     h += "<h3>What the study holds, in all</h3><table><tr><th>Layer</th><th>Tables</th><th>Rows</th></tr>" + W.layers.map((l) => "<tr><td>" + esc(l.label) + "</td><td>" + l.tables + "</td><td>" + Number(l.rows).toLocaleString("en-GB") + "</td></tr>").join("") + "</table>";
     if (W.growth && W.growth.length > 1) h += "<h3>How it grows, snapshot by snapshot</h3><table><tr><th>Date</th><th>Participants</th><th>Sites</th><th>Visits</th><th>Events</th></tr>" + W.growth.map((g) => "<tr" + (S.gsm && g.number === S.gsm.number ? " class='sel'" : "") + "><td>" + esc(g.date) + "</td><td>" + g.participants + "</td><td>" + g.sites + "</td><td>" + g.visits + "</td><td>" + g.events + "</td></tr>").join("") + "</table>";
     else h += "<div class='note'>This study file keeps only its last snapshot, so there is one risk review, at the end. Studies built with every snapshot have one a month.</div>";
-    h += "<p class='soft'>Facts and counts are study.builder's own overview of the study.</p>";
+    h += "<p class='soft'>The counts by day are rows of the study, each placed on its own date. The facts, countries and layers are study.builder's own overview.</p>";
     return h;
   }
 
@@ -246,11 +316,25 @@
     h += "<table><tr><th>" + (built() ? "Raw table" : "Form") + "</th><th>File</th><th>New today</th><th>To date</th></tr>" + forms.map(([k, n]) => "<tr><td>" + n + "</td><td class='soft'>" + (built() ? k : k.toLowerCase()) + ".csv</td><td>" + cut[k] + "</td><td>" + S.total[k] + "</td></tr>").join("") + "</table>";
     h += "<p class='soft'>Archived as raw/" + iso(cut.day) + "/ · " + cut.senders.length + " site" + (cut.senders.length === 1 ? "" : "s") + " sent data</p>";
     if (built()) {
-      h += dayCharts(false) + "<div class='note'><b>Where this comes from.</b> gsm.datasim made every row, inside study.builder. Sim Study only places each row on its own date. Data cleaning is not shown: this study file was built without the query and data-entry tables, which gsm.datasim can make.</div>";
+      h += dayCharts(false) + "<div class='note'><b>Where this comes from.</b> gsm.datasim made every row, inside study.builder. Sim Study only places each row on its own date.</div>";
     } else {
-      h += "<h3>Data cleaning</h3><div class='stats'>" + stat(cut.qo, "queries raised") + stat(cut.qc, "queries closed") + stat(S.openQ, "open now") + stat(S.pending, "records not yet entered") + "</div>" + dayCharts(true);
+      h += dayCharts(false);
     }
     return h;
+  }
+
+  function pClean() {
+    const cut = S.cuts[S.cuts.length - 1];
+    let h = "<h2>Data cleaning</h2>";
+    if (built()) {
+      const mine = S.forms.filter(([k]) => /^(QUERY|DATAENT|DATACHG)$/.test(k));
+      if (!mine.length) return h + "<p class='soft'>Queries raised and answered, data entry and data changes.</p><div class='note'><b>Nothing to clean in this study file.</b> It was built without the query, data-entry and data-change tables, which gsm.datasim can make. A study built with them fills this department.</div>";
+      if (!cut) return h + "<p class='soft'>Press Play. The first rows arrive when the first site opens.</p>";
+      return h + "<p class='soft'>Rows of the study's query, data-entry and data-change tables, each on its own date.</p><table><tr><th>Raw table</th><th>File</th><th>New today</th><th>To date</th></tr>" + mine.map(([k, n]) => "<tr><td>" + n + "</td><td class='soft'>" + k + ".csv</td><td>" + cut[k] + "</td><td>" + S.total[k] + "</td></tr>").join("") + "</table>";
+    }
+    if (!cut) return h + "<p class='soft'>Press Play. Queries start with the first day's data.</p>";
+    return h + "<p class='soft'>Queries on what the sites sent, and records still to be entered, as of " + date(cut.day) + ".</p><div class='stats'>" + stat(cut.qo, "queries raised") + stat(cut.qc, "queries closed") + stat(S.openQ, "open now") + stat(S.pending, "records not yet entered") + "</div>" +
+      cv("cq", (el) => { const xm = Math.max(28, S.day); chart(el, { xmax: xm, ymax: Math.max(10, ...S.cuts.map((x) => x.open)) * 1.1, xl: weekTicks(xm), series: [{ name: "open queries", color: "#b8865c", pts: S.cuts.map((x) => [x.day, x.open]) }] }); });
   }
 
   function siteCard(s) {
@@ -351,7 +435,7 @@
     return h;
   }
 
-  const PANELS = { over: pOver, today: pToday, week: pWeek, safety: pSafety, sub: pSub, csr: pCsr };
+  const PANELS = { over: pOver, today: pToday, clean: pClean, week: pWeek, safety: pSafety, sub: pSub, csr: pCsr };
   function render() {
     dirty = false; if (!S) return;
     const d = Math.max(0, S.day);
@@ -364,7 +448,7 @@
     $("speedBtn").textContent = ({ 1: "1 day/s", 7: "1 wk/s", 30: "1 mo/s" })[speed] + ($("timeMore").hidden ? " ▸" : " ◂");
     $("pick").textContent = "Study: " + (built() ? S.cfg.id : "made-up trial") + " ▾";
     document.querySelectorAll(".arcade").forEach((el) => { el.hidden = built(); });
-    $("tab-csr").textContent = built() ? "Results" : "Report";
+    TABS.forEach(([k, , b]) => { const el = $("tab-" + k); if (el) el.classList.toggle("lit", campusOn(b)); });
     document.querySelectorAll("[data-tab]").forEach((b) => { b.classList.toggle("on", b.dataset.tab === tab); b.setAttribute("aria-selected", b.dataset.tab === tab); });
     const p = $("panel"), top = p.scrollTop;
     charts.length = 0; p.innerHTML = PANELS[tab](); p.scrollTop = top;
@@ -412,11 +496,12 @@
     S = made; layout(S.sites.length); sel = null; vans = []; acc = 0; newsN = -1; tab = "over"; dirty = true; render();
   }
 
-  $("tabs").innerHTML = TABS.map(([k, n]) => "<button role='tab' id='tab-" + k + "' data-tab='" + k + "'>" + n + "</button>").join("");
+  $("tabs").innerHTML = TABS.map(([k, n, b]) => "<button role='tab' id='tab-" + k + "' data-tab='" + k + "'><i style='background:" + CAMPUS.find((x) => x.k === b).col + "'></i>" + n + "</button>").join("");
   $("tabs").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; $("panel").scrollTop = 0; render(); } });
   $("play").addEventListener("click", () => { playing = !playing; if (playing) closeViz(); render(); });
   $("speedBtn").addEventListener("click", () => { const m = $("timeMore"); m.hidden = !m.hidden; $("speedBtn").setAttribute("aria-expanded", String(!m.hidden)); render(); });
   $("pick").addEventListener("click", openChooser);
+  $("info").addEventListener("click", openAbout);
   $("stepBtn").addEventListener("click", () => { playing = false; tick(); render(); });
   $("auto").addEventListener("change", (e) => { S.auto = e.target.checked; });
   $("fresh").addEventListener("click", () => start("arcade", 1 + Math.floor(Math.random() * 99999)));
@@ -430,11 +515,14 @@
     if (!S) return;
     const b = e.target.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top; let best = null, bd = TW * 0.9;
     S.sites.forEach((s, i) => { if (!SPOT[i]) return; const p = P(SPOT[i][0] + 0.5, SPOT[i][1] + 0.5, (siteH(s) * TW) / 80), d = Math.hypot(p[0] - x, p[1] - y); if (d < bd) { bd = d; best = i; } });
+    let dept = null, dd = Infinity;
+    if (best === null) CAMPUS.forEach((b) => { if (!b.at) return; const d = Math.hypot(b.at[0] - x, b.at[1] - y); if (d < b.reach && d < dd) { dd = d; dept = b.k; } });
+    if (dept) { tab = TABS.find((t) => t[2] === dept)[0]; $("panel").scrollTop = 0; render(); return; }
     sel = best; if (best !== null) tab = "week"; render();
   });
   document.addEventListener("keydown", (e) => { if (e.code === "Space" && e.target.tagName !== "BUTTON" && e.target.tagName !== "INPUT") { e.preventDefault(); playing = !playing; render(); } });
   window.addEventListener("resize", () => { dirty = true; });
 
-  start(hash("study", "pilot") === "made-up" ? "arcade" : "built").then(() => requestAnimationFrame(frame));
-  window.__sim = { get S() { return S; }, tick, render, openViz, openChooser, openStudyView, start, set tab(v) { tab = v; }, set sel(v) { sel = v; } };
+  start(hash("study", "pilot") === "made-up" ? "arcade" : "built").then(() => { requestAnimationFrame(frame); if (firstVisit() && !/about=off/.test(location.hash)) openAbout(); });
+  window.__sim = { get S() { return S; }, tick, render, openViz, openChooser, openAbout, openStudyView, start, set tab(v) { tab = v; }, set sel(v) { sel = v; } };
 })();
